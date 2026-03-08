@@ -1,4 +1,5 @@
 config.yaml
+config.test.yaml
 csv/
 __pycache__/
 .mypy_cache/

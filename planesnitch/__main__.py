@@ -54,12 +54,8 @@ async def _health_handler(
 _start_time: float = time.time()
 
 
-async def run(config: dict[str, Any]) -> None:
+async def run(config_path: str, config: dict[str, Any]) -> None:
     global _last_poll, _last_aircraft_count
-    poll_interval = config.get("poll_interval", 15)
-    locations = config["locations"]
-    notifications = config.get("notifications", {})
-    display_units = config.get("display_units", "aviation")
     cooldowns: dict[tuple[str, str], float] = {}
 
     csv_refresh_interval = 86400
@@ -73,6 +69,20 @@ async def run(config: dict[str, Any]) -> None:
 
         while True:
             now = time.time()
+
+            try:
+                new_config = load_config(config_path)
+                if new_config != config:
+                    log.info("config reloaded (changed)")
+                    config = new_config
+                    last_csv_refresh = 0.0
+            except Exception:
+                log.warning("config reload failed, keeping current", exc_info=True)
+
+            poll_interval = config.get("poll_interval", 15)
+            locations = config["locations"]
+            notifications = config.get("notifications", {})
+            display_units = config.get("display_units", "aviation")
 
             if now - last_csv_refresh > csv_refresh_interval:
                 log.debug(
@@ -200,7 +210,7 @@ def main() -> None:
     log.info("planesnitch starting")
 
     try:
-        asyncio.run(run(config))
+        asyncio.run(run(args.config, config))
     except KeyboardInterrupt:
         log.info("shutting down")
 
