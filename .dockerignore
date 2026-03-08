@@ -1,0 +1,15 @@
+config.yaml
+csv/
+__pycache__/
+.mypy_cache/
+.git/
+.gitignore
+.dockerignore
+.research_files/
+.github/
+*.md
+*.bak
+run.sh
+Makefile
+LICENSE
+CLAUDE.md

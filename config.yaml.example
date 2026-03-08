@@ -1,0 +1,98 @@
+poll_interval: 15
+display_units: aviation  # aviation (ft/kts/nm), metric (m/km·h/km), imperial (ft/mph/mi)
+
+locations:
+  home:
+    name: "Home"
+    lat: 25.0000
+    lon: -71.0000
+    radius_km: 150
+  # vacation_house:
+  #   name: "Vacation House"
+  #   lat: 37.2343
+  #   lon: -115.8067
+  #   radius_km: 100
+  # grandmas_house:
+  #   name: "Grandma's House"
+  #   lat: 55.7521
+  #   lon: 37.6177
+  #   radius_km: 200
+  # the_office:
+  #   name: "The Office"
+  #   lat: 38.8719
+  #   lon: -77.0563
+  #   radius_km: 50
+
+sources:
+  - type: adsb_lol
+  - type: adsb_fi
+  - type: airplanes_live
+  - type: adsb_one
+  # - type: ultrafeeder
+  #   url: http://ultrafeeder:80/tar1090/data/aircraft.json
+
+watchlists:
+  emergencies:
+    type: squawk
+    values: ["7500", "7600", "7700"]
+
+  military:
+    type: icao_csv
+    source: plane-alert-mil.csv
+
+  government:
+    type: icao_csv
+    source: plane-alert-gov.csv
+
+  police:
+    type: icao_csv
+    source: plane-alert-pol.csv
+
+  # my_watchlist:
+  #   type: icao
+  #   values:
+  #     - "4ca123"
+  #     - "a12345"
+
+  # everything:
+  #   type: all
+
+  # low_flyers:
+  #   type: proximity
+  #   radius_km: 30
+  #   min_altitude_ft: 0
+  #   max_altitude_ft: 3000
+
+alerts:
+  - name: "Emergency Alert"
+    watchlists: [emergencies]
+    cooldown: 60
+    notify: [tg_main]
+
+  - name: "Military Spotter"
+    watchlists: [military, government]
+    cooldown: 300
+    notify: [tg_main]
+
+  # - name: "Everything at Home"
+  #   locations: [home]
+  #   watchlists: [everything]
+  #   cooldown: 60
+  #   notify: [tg_main]
+
+  # - name: "Low Flyer"
+  #   watchlists: [low_flyers]
+  #   cooldown: 600
+  #   notify: [tg_main]
+
+notifications:
+  tg_main:
+    type: telegram
+    bot_token: ""
+    chat_id: ""
+
+  # my_webhook:
+  #   type: webhook
+  #   url: "https://example.com/hook"
+  #   headers:
+  #     Authorization: "Bearer xxx"

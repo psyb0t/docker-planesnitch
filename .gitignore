@@ -1,0 +1,9 @@
+config.yaml
+csv/
+__pycache__/
+.mypy_cache/
+.research_files/
+*.pyc
+*.bak
+run.sh
+CLAUDE.md
