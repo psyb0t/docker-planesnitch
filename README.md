@@ -347,7 +347,7 @@ Not 47 microservices. It watches planes and sends messages. That's it.
 
 Set `LOG_LEVEL` environment variable to `DEBUG` for verbose output (default: `INFO`). Other noisy libraries stay at `WARNING` so you only see planesnitch logs.
 
-A health endpoint runs on port `8080` (configurable via `HEALTH_PORT` env var). The Docker image includes a built-in healthcheck against it.
+A health endpoint runs on port `8080`. The Docker image includes a built-in healthcheck against it.
 
 ## 📝 License
 

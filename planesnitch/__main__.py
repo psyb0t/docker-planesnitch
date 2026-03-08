@@ -65,9 +65,8 @@ async def run(config: dict[str, Any]) -> None:
     csv_refresh_interval = 86400
     last_csv_refresh = 0.0
 
-    port = int(os.environ.get("HEALTH_PORT", str(HEALTH_PORT)))
-    await asyncio.start_server(_health_handler, "0.0.0.0", port)
-    log.info("health endpoint listening on :%d", port)
+    await asyncio.start_server(_health_handler, "0.0.0.0", HEALTH_PORT)
+    log.info("health endpoint listening on :%d", HEALTH_PORT)
 
     async with aiohttp.ClientSession() as session:
         watchlists: dict[str, dict[str, Any]] = {}
