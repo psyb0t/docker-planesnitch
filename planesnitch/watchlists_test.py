@@ -50,7 +50,7 @@ class TestParseAlertCsv:
 
 
 class TestMatchesWatchlist:
-    LOC = {"lat": 38.8719, "lon": -77.0563}
+    LOC = {"lat": 38.8719, "lon": -77.0563, "radius": "50km"}
 
     def test_squawk_match(self):
         ac = {"hex": "abc123", "squawk": "7700"}
@@ -109,7 +109,6 @@ class TestMatchesWatchlist:
         ac = {"hex": "abc123", "lat": 38.88, "lon": -77.06, "alt_baro": 5000}
         wl = {
             "type": "proximity",
-            "radius_km": 50,
             "min_altitude_ft": 0,
             "max_altitude_ft": 10000,
         }
@@ -123,7 +122,6 @@ class TestMatchesWatchlist:
         ac = {"hex": "abc123", "lat": 50.0, "lon": 0.0, "alt_baro": 5000}
         wl = {
             "type": "proximity",
-            "radius_km": 50,
             "min_altitude_ft": 0,
             "max_altitude_ft": 10000,
         }
@@ -133,7 +131,6 @@ class TestMatchesWatchlist:
         ac = {"hex": "abc123", "lat": 38.88, "lon": -77.06, "alt_baro": 50000}
         wl = {
             "type": "proximity",
-            "radius_km": 50,
             "min_altitude_ft": 0,
             "max_altitude_ft": 10000,
         }
@@ -143,7 +140,6 @@ class TestMatchesWatchlist:
         ac = {"hex": "abc123", "lat": 38.88, "lon": -77.06, "alt_baro": 100}
         wl = {
             "type": "proximity",
-            "radius_km": 50,
             "min_altitude_ft": 500,
             "max_altitude_ft": 10000,
         }
@@ -151,14 +147,13 @@ class TestMatchesWatchlist:
 
     def test_proximity_no_position(self):
         ac = {"hex": "abc123", "alt_baro": 5000}
-        wl = {"type": "proximity", "radius_km": 50}
+        wl = {"type": "proximity"}
         assert matches_watchlist(ac, wl, self.LOC) is None
 
     def test_proximity_ground_string_alt(self):
         ac = {"hex": "abc123", "lat": 38.88, "lon": -77.06, "alt_baro": "ground"}
         wl = {
             "type": "proximity",
-            "radius_km": 50,
             "min_altitude_ft": 0,
             "max_altitude_ft": 10000,
         }
@@ -166,7 +161,7 @@ class TestMatchesWatchlist:
 
     def test_proximity_no_alt_limits(self):
         ac = {"hex": "abc123", "lat": 38.88, "lon": -77.06, "alt_baro": 50000}
-        wl = {"type": "proximity", "radius_km": 50}
+        wl = {"type": "proximity"}
         result = matches_watchlist(ac, wl, self.LOC)
         assert result is not None
 

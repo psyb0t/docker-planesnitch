@@ -34,7 +34,7 @@ sources:
 watchlists:
   emergencies:
     type: squawk
-    values: ["7500", "7600", "7700"]
+    values: ["7500", "7600", "7700", "7400", "7777"]
 
   military:
     type: icao_csv
@@ -48,6 +48,18 @@ watchlists:
     type: icao_csv
     source: plane-alert-pol.csv
 
+  civilian:
+    type: icao_csv
+    source: plane-alert-civ.csv
+
+  interesting:
+    type: icao_csv
+    source: plane-alert-db.csv
+
+  pia:
+    type: icao_csv
+    source: plane-alert-pia.csv
+
   # my_watchlist:
   #   type: icao
   #   values:
@@ -59,7 +71,6 @@ watchlists:
 
   # low_flyers:
   #   type: proximity
-  #   radius: 30km        # or 20mi, 15nm
   #   min_altitude: 0ft   # or 0m
   #   max_altitude: 3000ft # or 1000m
 

@@ -75,19 +75,16 @@ def load_watchlists(
             continue
 
         if wl_type == "proximity":
-            radius_km = resolve_distance_km(wl, "radius", default=50)
             min_alt_ft = resolve_altitude_ft(wl, "min_altitude")
             max_alt_ft = resolve_altitude_ft(wl, "max_altitude")
             log.debug(
-                "watchlist %s: proximity r=%.1fkm alt=%s-%sft",
+                "watchlist %s: proximity alt=%s-%sft",
                 name,
-                radius_km,
                 min_alt_ft,
                 max_alt_ft,
             )
             loaded[name] = {
                 "type": "proximity",
-                "radius_km": radius_km,
                 "min_altitude_ft": min_alt_ft,
                 "max_altitude_ft": max_alt_ft,
             }
@@ -134,7 +131,8 @@ def matches_watchlist(
         dist = get_distance_km(aircraft, location)
         if dist is None:
             return None
-        if dist > watchlist["radius_km"]:
+        radius_km = resolve_distance_km(location, "radius", default=150)
+        if dist > radius_km:
             return None
 
         alt = aircraft.get("alt_baro")

@@ -116,7 +116,7 @@ Tell the snitch what to look for:
 | `squawk`    | Transponder squawk code | Inline list                                                                                           |
 | `icao`      | ICAO hex address        | Inline list                                                                                           |
 | `icao_csv`  | ICAO hex from CSV       | Local file in `csv/` dir ([plane-alert-db](https://github.com/sdr-enthusiasts/plane-alert-db) format) |
-| `proximity` | Distance + altitude     | Calculated from your location                                                                         |
+| `proximity` | Altitude filter         | Uses location radius + altitude limits                                                                |
 
 ```yaml
 watchlists:
@@ -130,6 +130,16 @@ watchlists:
     type: icao_csv
     source: plane-alert-mil.csv
 
+  # Government aircraft
+  government:
+    type: icao_csv
+    source: plane-alert-gov.csv
+
+  # Police / law enforcement
+  police:
+    type: icao_csv
+    source: plane-alert-pol.csv
+
   # Stalk specific aircraft by hex
   my_planes:
     type: icao
@@ -142,7 +152,6 @@ watchlists:
   # WTF just buzzed my house
   low_flyers:
     type: proximity
-    radius: 30km       # 20mi, 15nm also work
     min_altitude: 0ft  # or 0m
     max_altitude: 3000ft # or 1000m
 ```
