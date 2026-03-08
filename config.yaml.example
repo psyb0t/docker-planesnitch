@@ -71,8 +71,8 @@ watchlists:
 
   # low_flyers:
   #   type: proximity
-  #   min_altitude: 0ft   # or 0m
-  #   max_altitude: 3000ft # or 1000m
+  #   min_altitude: 0ft
+  #   max_altitude: 3000ft
 
 alerts:
   - name: "Emergency Alert"

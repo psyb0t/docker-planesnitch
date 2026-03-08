@@ -121,15 +121,22 @@ class TestResolveDistanceKm:
     def test_inline_decimal(self):
         assert resolve_distance_km({"radius": "30.5km"}, "radius") == 30.5
 
+    def test_inline_ft(self):
+        # 5000ft -> meters -> km
+        result = resolve_distance_km({"radius": "5000ft"}, "radius")
+        assert result == pytest.approx(5000 * 0.3048 / 1000, rel=1e-3)
+
+    def test_inline_m(self):
+        result = resolve_distance_km({"radius": "1000m"}, "radius")
+        assert result == pytest.approx(1.0, rel=1e-3)
+
     def test_inline_invalid_raises(self):
-        with pytest.raises(SystemExit, match="invalid distance"):
+        with pytest.raises(SystemExit, match="invalid value"):
             resolve_distance_km({"radius": "30parsecs"}, "radius")
 
     def test_inline_takes_priority(self):
         # Single key should be checked first, suffix keys ignored
-        result = resolve_distance_km(
-            {"radius": "30km", "radius_mi": 100}, "radius"
-        )
+        result = resolve_distance_km({"radius": "30km", "radius_mi": 100}, "radius")
         assert result == 30.0
 
 
@@ -173,8 +180,23 @@ class TestResolveAltitudeFt:
     def test_inline_decimal(self):
         assert resolve_altitude_ft({"alt": "3000.5ft"}, "alt") == 3000.5
 
+    def test_inline_km(self):
+        # 1km -> 1000m -> ft
+        result = resolve_altitude_ft({"alt": "1km"}, "alt")
+        assert result == pytest.approx(1000 / 0.3048, rel=1e-3)
+
+    def test_inline_nm(self):
+        # 1nm -> 1852m -> ft
+        result = resolve_altitude_ft({"alt": "1nm"}, "alt")
+        assert result == pytest.approx(1852 / 0.3048, rel=1e-3)
+
+    def test_inline_mi(self):
+        # 1mi -> 1609.34m -> ft
+        result = resolve_altitude_ft({"alt": "1mi"}, "alt")
+        assert result == pytest.approx(1609.34 / 0.3048, rel=1e-3)
+
     def test_inline_invalid_raises(self):
-        with pytest.raises(SystemExit, match="invalid altitude"):
+        with pytest.raises(SystemExit, match="invalid value"):
             resolve_altitude_ft({"alt": "3000cubits"}, "alt")
 
     def test_inline_takes_priority(self):

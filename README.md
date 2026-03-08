@@ -69,7 +69,9 @@ display_units: aviation  # default
 
 ### Locations
 
-Define one or more named locations. Each location has coordinates and a search radius. Distances support `_km`, `_mi`, or `_nm` suffixes — pick one per location:
+Define one or more named locations. Each location has coordinates and a search radius.
+
+> **Units:** Any distance or altitude value in the config accepts a unit suffix: `km`, `mi`, `nm`, `ft`, `m`. They all convert internally — use whatever makes sense. `radius: 100mi` and `max_altitude: 1km` both work. Plain numbers without a suffix default to km for distances and ft for altitudes.
 
 ```yaml
 locations:
@@ -152,8 +154,8 @@ watchlists:
   # WTF just buzzed my house
   low_flyers:
     type: proximity
-    min_altitude: 0ft  # or 0m
-    max_altitude: 3000ft # or 1000m
+    min_altitude: 0ft
+    max_altitude: 3000ft
 ```
 
 ### Alerts
