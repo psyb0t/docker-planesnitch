@@ -1,6 +1,7 @@
 """ADS-B data source fetching and deduplication."""
 
 import asyncio
+import json
 import logging
 from typing import Any
 
@@ -40,7 +41,27 @@ async def _fetch_api_source(
     try:
         async with session.get(url, timeout=aiohttp.ClientTimeout(total=15)) as resp:
             log.debug("%s response status: %s", name, resp.status)
-            data = await resp.json()
+            body = await resp.text()
+            if resp.status not in (200, 429):
+                log.warning(
+                    "%s returned %d: %s",
+                    name,
+                    resp.status,
+                    body[:200],
+                )
+                return []
+            try:
+                data = json.loads(body)
+            except (json.JSONDecodeError, ValueError):
+                log.warning(
+                    "%s returned non-JSON (%d): %s",
+                    name,
+                    resp.status,
+                    body[:200],
+                )
+                return []
+            if resp.status == 429:
+                log.debug("%s rate-limited (429)", name)
             ac_list = data.get(ac_key, [])
             log.debug("%s returned %d aircraft", name, len(ac_list))
             for ac in ac_list:
@@ -67,7 +88,15 @@ async def _fetch_ultrafeeder(
     try:
         async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
             log.debug("ultrafeeder response status: %s", resp.status)
-            data = await resp.json()
+            if resp.status != 200:
+                body = await resp.text()
+                log.warning(
+                    "ultrafeeder returned %d: %s",
+                    resp.status,
+                    body[:200],
+                )
+                return []
+            data = await resp.json(content_type=None)
             ac_list = data.get("aircraft", [])
             log.debug("ultrafeeder returned %d aircraft", len(ac_list))
             for ac in ac_list:
@@ -125,7 +154,7 @@ async def fetch_aircraft(
 
         for loc_name, loc in locations.items():
             dist_km = resolve_distance_km(loc, "radius", default=150) or 150
-            dist_nm = min(int(dist_km / NM_TO_KM), 250)
+            dist_nm = max(1, min(int(dist_km / NM_TO_KM), 250))
             label = f"{src_type}@{loc_name}"
             log.debug("fetching from %s", label)
             url = api_def["url"].format(

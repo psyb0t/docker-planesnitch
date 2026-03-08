@@ -1,4 +1,4 @@
-poll_interval: 15s
+poll_interval: 1m
 display_units: aviation  # aviation (ft/kts/nm), metric (m/km·h/km), imperial (ft/mph/mi)
 
 locations:
@@ -29,7 +29,7 @@ sources:
   - type: airplanes_live
   - type: adsb_one
   # - type: ultrafeeder
-  #   url: http://ultrafeeder:80/tar1090/data/aircraft.json
+  #   url: http://ultrafeeder:80/data/aircraft.json
 
 watchlists:
   emergencies:
