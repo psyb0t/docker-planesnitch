@@ -1,6 +1,7 @@
 """Configuration loading and unit conversion helpers."""
 
 import logging
+import re
 from typing import Any
 
 import yaml
@@ -15,6 +16,34 @@ KTS_TO_MPH = 1.15078
 DATA_DIR = "/csv"
 
 VALID_DISPLAY_UNITS = ("aviation", "metric", "imperial")
+
+_DURATION_RE = re.compile(r"(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$", re.IGNORECASE)
+
+
+def parse_duration(value: Any) -> int:
+    """Parse a duration value into seconds.
+
+    Accepts int/float (raw seconds) or strings like '5m', '1h30m', '2h', '90s'.
+    """
+    if isinstance(value, (int, float)):
+        return int(value)
+
+    s = str(value).strip()
+    if not s:
+        raise ValueError("empty duration")
+
+    if s.isdigit():
+        return int(s)
+
+    m = _DURATION_RE.match(s)
+    if not m or not any(m.groups()):
+        raise ValueError(f"invalid duration: {s!r} — use e.g. 5m, 1h30m, 90s")
+
+    hours = int(m.group(1) or 0)
+    minutes = int(m.group(2) or 0)
+    seconds = int(m.group(3) or 0)
+    return hours * 3600 + minutes * 60 + seconds
+
 
 SQUAWK_LABELS = {
     "7500": "HIJACK",
@@ -132,6 +161,21 @@ def load_config(path: str) -> dict[str, Any]:
             f"invalid display_units: {du} — must be one of {VALID_DISPLAY_UNITS}"
         )
     cfg["display_units"] = du
+
+    try:
+        cfg["poll_interval"] = parse_duration(cfg.get("poll_interval", 15))
+    except ValueError as e:
+        raise SystemExit(f"invalid poll_interval: {e}") from None
+
+    for rule in cfg.get("alerts", []):
+        if "cooldown" not in rule:
+            continue
+        try:
+            rule["cooldown"] = parse_duration(rule["cooldown"])
+        except ValueError as e:
+            raise SystemExit(
+                f"invalid cooldown in alert {rule.get('name', '?')!r}: {e}"
+            ) from None
 
     log.debug("config loaded: %s", cfg)
     return cfg

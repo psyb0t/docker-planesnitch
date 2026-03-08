@@ -149,25 +149,25 @@ watchlists:
 
 ### Alerts
 
-Connect watchlists to notifications. Optionally filter by `locations` — if omitted, all locations are checked. Cooldown so it doesn't spam the shit out of you about the same C-17 doing laps for 3 hours:
+Connect watchlists to notifications. Optionally filter by `locations` — if omitted, all locations are checked. Cooldown so it doesn't spam the shit out of you about the same C-17 doing laps for 3 hours. Durations support `s`, `m`, `h` — e.g. `5m`, `1h30m`, `90s`, or plain seconds:
 
 ```yaml
 alerts:
   - name: "Emergency Alert"
     watchlists: [emergencies]
-    cooldown: 60
+    cooldown: 1m
     notify: [tg_emergencies, my_webhook]
 
   - name: "Military Spotter"
     watchlists: [military, government]
-    cooldown: 300
+    cooldown: 5m
     notify: [tg_spotting]
 
   # Only alert for this watchlist at specific locations
   - name: "Everything at Home"
     locations: [home]
     watchlists: [everything]
-    cooldown: 60
+    cooldown: 1m
     notify: [tg_main]
 ```
 

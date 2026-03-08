@@ -1,4 +1,4 @@
-poll_interval: 15
+poll_interval: 15s
 display_units: aviation  # aviation (ft/kts/nm), metric (m/km·h/km), imperial (ft/mph/mi)
 
 locations:
@@ -66,23 +66,23 @@ watchlists:
 alerts:
   - name: "Emergency Alert"
     watchlists: [emergencies]
-    cooldown: 60
+    cooldown: 1m
     notify: [tg_main]
 
   - name: "Military Spotter"
     watchlists: [military, government]
-    cooldown: 300
+    cooldown: 5m
     notify: [tg_main]
 
   # - name: "Everything at Home"
   #   locations: [home]
   #   watchlists: [everything]
-  #   cooldown: 60
+  #   cooldown: 1m
   #   notify: [tg_main]
 
   # - name: "Low Flyer"
   #   watchlists: [low_flyers]
-  #   cooldown: 600
+  #   cooldown: 10m
   #   notify: [tg_main]
 
 notifications:
