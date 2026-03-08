@@ -6,22 +6,22 @@ locations:
     name: "Home"
     lat: 25.0000
     lon: -71.0000
-    radius_km: 150
+    radius: 150km
   # vacation_house:
   #   name: "Vacation House"
   #   lat: 37.2343
   #   lon: -115.8067
-  #   radius_km: 100
+  #   radius: 60nm
   # grandmas_house:
   #   name: "Grandma's House"
   #   lat: 55.7521
   #   lon: 37.6177
-  #   radius_km: 200
+  #   radius: 200km
   # the_office:
   #   name: "The Office"
   #   lat: 38.8719
   #   lon: -77.0563
-  #   radius_km: 50
+  #   radius: 30mi
 
 sources:
   - type: adsb_lol
@@ -59,9 +59,9 @@ watchlists:
 
   # low_flyers:
   #   type: proximity
-  #   radius_km: 30
-  #   min_altitude_ft: 0
-  #   max_altitude_ft: 3000
+  #   radius: 30km        # or 20mi, 15nm
+  #   min_altitude: 0ft   # or 0m
+  #   max_altitude: 3000ft # or 1000m
 
 alerts:
   - name: "Emergency Alert"

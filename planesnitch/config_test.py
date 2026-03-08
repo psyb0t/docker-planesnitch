@@ -19,7 +19,6 @@ from .config import (
     unit_labels,
 )
 
-
 # --- parse_duration ---
 
 
@@ -99,6 +98,40 @@ class TestResolveDistanceKm:
         with pytest.raises(SystemExit, match="conflicting"):
             resolve_distance_km({"radius_km": 10, "radius_mi": 10}, "radius")
 
+    def test_inline_km(self):
+        assert resolve_distance_km({"radius": "30km"}, "radius") == 30.0
+
+    def test_inline_mi(self):
+        result = resolve_distance_km({"radius": "50mi"}, "radius")
+        assert result == pytest.approx(50 * 1.60934, rel=1e-3)
+
+    def test_inline_nm(self):
+        result = resolve_distance_km({"radius": "100nm"}, "radius")
+        assert result == pytest.approx(100 * 1.852, rel=1e-3)
+
+    def test_inline_plain_number(self):
+        assert resolve_distance_km({"radius": 30}, "radius") == 30.0
+
+    def test_inline_case_insensitive(self):
+        assert resolve_distance_km({"radius": "30KM"}, "radius") == 30.0
+
+    def test_inline_with_spaces(self):
+        assert resolve_distance_km({"radius": " 30km "}, "radius") == 30.0
+
+    def test_inline_decimal(self):
+        assert resolve_distance_km({"radius": "30.5km"}, "radius") == 30.5
+
+    def test_inline_invalid_raises(self):
+        with pytest.raises(SystemExit, match="invalid distance"):
+            resolve_distance_km({"radius": "30parsecs"}, "radius")
+
+    def test_inline_takes_priority(self):
+        # Single key should be checked first, suffix keys ignored
+        result = resolve_distance_km(
+            {"radius": "30km", "radius_mi": 100}, "radius"
+        )
+        assert result == 30.0
+
 
 # --- resolve_altitude_ft ---
 
@@ -120,6 +153,33 @@ class TestResolveAltitudeFt:
     def test_conflict_raises(self):
         with pytest.raises(SystemExit, match="conflicting"):
             resolve_altitude_ft({"alt_ft": 100, "alt_m": 100}, "alt")
+
+    def test_inline_ft(self):
+        assert resolve_altitude_ft({"alt": "3000ft"}, "alt") == 3000.0
+
+    def test_inline_m(self):
+        result = resolve_altitude_ft({"alt": "1000m"}, "alt")
+        assert result == pytest.approx(1000 / 0.3048, rel=1e-3)
+
+    def test_inline_plain_number(self):
+        assert resolve_altitude_ft({"alt": 3000}, "alt") == 3000.0
+
+    def test_inline_case_insensitive(self):
+        assert resolve_altitude_ft({"alt": "3000FT"}, "alt") == 3000.0
+
+    def test_inline_with_spaces(self):
+        assert resolve_altitude_ft({"alt": " 3000ft "}, "alt") == 3000.0
+
+    def test_inline_decimal(self):
+        assert resolve_altitude_ft({"alt": "3000.5ft"}, "alt") == 3000.5
+
+    def test_inline_invalid_raises(self):
+        with pytest.raises(SystemExit, match="invalid altitude"):
+            resolve_altitude_ft({"alt": "3000cubits"}, "alt")
+
+    def test_inline_takes_priority(self):
+        result = resolve_altitude_ft({"alt": "3000ft", "alt_m": 500}, "alt")
+        assert result == 3000.0
 
 
 # --- format_altitude ---
@@ -269,7 +329,9 @@ class TestLoadConfig:
                     "notify": ["tg"],
                 }
             ],
-            "notifications": {"tg": {"type": "telegram", "bot_token": "x", "chat_id": "y"}},
+            "notifications": {
+                "tg": {"type": "telegram", "bot_token": "x", "chat_id": "y"}
+            },
         }
         cfg.update(overrides)
         import yaml

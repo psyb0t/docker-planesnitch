@@ -77,12 +77,12 @@ locations:
     name: "Home"
     lat: 38.8719
     lon: -77.0563
-    radius_km: 150
+    radius: 150km
   area51:
     name: "Area 51"
     lat: 37.2350
     lon: -115.8111
-    radius_nm: 50
+    radius: 50nm
 ```
 
 Each location can have an optional `name` for pretty display in alerts. Falls back to the key if not set.
@@ -142,9 +142,9 @@ watchlists:
   # WTF just buzzed my house
   low_flyers:
     type: proximity
-    radius_km: 30 # or radius_mi / radius_nm
-    min_altitude_ft: 0 # or min_altitude_m
-    max_altitude_ft: 3000 # or max_altitude_m
+    radius: 30km       # 20mi, 15nm also work
+    min_altitude: 0ft  # or 0m
+    max_altitude: 3000ft # or 1000m
 ```
 
 ### Alerts

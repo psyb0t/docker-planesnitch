@@ -54,9 +54,63 @@ SQUAWK_LABELS = {
 }
 
 
+_DIST_RE = re.compile(r"^([\d.]+)\s*(km|mi|nm)$", re.IGNORECASE)
+_ALT_RE = re.compile(r"^([\d.]+)\s*(ft|m)$", re.IGNORECASE)
+
+
+def _parse_distance_value(value: Any) -> float | None:
+    """Parse a value like '30km', '50nm', '100mi', or plain number (km)."""
+    if isinstance(value, (int, float)):
+        return None
+    s = str(value).strip()
+    m = _DIST_RE.match(s)
+    if not m:
+        return None
+    num = float(m.group(1))
+    unit = m.group(2).lower()
+    if unit == "km":
+        return num
+    if unit == "mi":
+        return num * MI_TO_KM
+    if unit == "nm":
+        return num * NM_TO_KM
+    return None
+
+
+def _parse_altitude_value(value: Any) -> float | None:
+    """Parse a value like '3000ft', '1000m', or plain number (ft)."""
+    if isinstance(value, (int, float)):
+        return None
+    s = str(value).strip()
+    m = _ALT_RE.match(s)
+    if not m:
+        return None
+    num = float(m.group(1))
+    unit = m.group(2).lower()
+    if unit == "ft":
+        return num
+    if unit == "m":
+        return num / FT_TO_M
+    return None
+
+
 def resolve_distance_km(
     cfg: dict[str, Any], key_prefix: str, default: float | None = None
 ) -> float | None:
+    # Try single key with unit suffix on value: radius: 30km
+    single = cfg.get(key_prefix)
+    if single is not None:
+        parsed = _parse_distance_value(single)
+        if parsed is not None:
+            return parsed
+        if isinstance(single, (int, float)):
+            return float(single)
+        raise SystemExit(
+            f"invalid distance value for {key_prefix}: {single!r}"
+            " — use e.g. 30km, 50nm, 100mi"
+        )
+
+    # Fallback: separate keys with unit suffix: radius_km, radius_mi, radius_nm
     km = cfg.get(f"{key_prefix}_km")
     mi = cfg.get(f"{key_prefix}_mi")
     nm = cfg.get(f"{key_prefix}_nm")
@@ -78,6 +132,20 @@ def resolve_distance_km(
 def resolve_altitude_ft(
     cfg: dict[str, Any], key_prefix: str, default: float | None = None
 ) -> float | None:
+    # Try single key with unit suffix on value: max_altitude: 3000ft
+    single = cfg.get(key_prefix)
+    if single is not None:
+        parsed = _parse_altitude_value(single)
+        if parsed is not None:
+            return parsed
+        if isinstance(single, (int, float)):
+            return float(single)
+        raise SystemExit(
+            f"invalid altitude value for {key_prefix}: {single!r}"
+            " — use e.g. 3000ft, 1000m"
+        )
+
+    # Fallback: separate keys with unit suffix: max_altitude_ft, max_altitude_m
     ft = cfg.get(f"{key_prefix}_ft")
     m = cfg.get(f"{key_prefix}_m")
     set_keys = [(k, v) for k, v in [("ft", ft), ("m", m)] if v is not None]
