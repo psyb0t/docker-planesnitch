@@ -98,11 +98,22 @@ class TestMatchesWatchlist:
         assert matches_watchlist(ac, wl, self.LOC) is None
 
     def test_all_match(self):
-        ac = {"hex": "abc123"}
+        ac = {"hex": "abc123", "lat": 38.88, "lon": -77.06}
         wl = {"type": "all"}
         result = matches_watchlist(ac, wl, self.LOC)
         assert result is not None
         assert result["reason"] == "all"
+        assert "distance_km" in result
+
+    def test_all_too_far(self):
+        ac = {"hex": "abc123", "lat": 50.0, "lon": 0.0}
+        wl = {"type": "all"}
+        assert matches_watchlist(ac, wl, self.LOC) is None
+
+    def test_all_no_position(self):
+        ac = {"hex": "abc123"}
+        wl = {"type": "all"}
+        assert matches_watchlist(ac, wl, self.LOC) is None
 
     def test_proximity_match(self):
         # Aircraft very close to location

@@ -124,8 +124,14 @@ def matches_watchlist(
         return {"reason": "icao_csv_match", "info": db[hex_code]}
 
     if wl_type == "all":
-        log.debug("all match: %s", hex_code)
-        return {"reason": "all"}
+        dist = get_distance_km(aircraft, location)
+        if dist is None:
+            return None
+        radius_km = resolve_distance_km(location, "radius", default=150)
+        if dist > radius_km:
+            return None
+        log.debug("all match: %s dist=%.1fkm", hex_code, dist)
+        return {"reason": "all", "distance_km": round(dist, 1)}
 
     if wl_type == "proximity":
         dist = get_distance_km(aircraft, location)

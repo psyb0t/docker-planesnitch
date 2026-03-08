@@ -16,8 +16,8 @@ def _make_ac(hex_code, lat=38.88, lon=-77.06, squawk="1234", alt=10000):
 
 
 LOCATIONS = {
-    "home": {"lat": 38.8719, "lon": -77.0563},
-    "far": {"lat": 50.0, "lon": 0.0},
+    "home": {"lat": 38.8719, "lon": -77.0563, "radius": "50km"},
+    "far": {"lat": 50.0, "lon": 0.0, "radius": "50km"},
 }
 
 WATCHLISTS = {
@@ -31,7 +31,12 @@ class TestCheckAlerts:
     def test_all_match(self):
         aircraft = [_make_ac("aaa111")]
         rules = [
-            {"name": "All", "watchlists": ["everything"], "cooldown": 300, "notify": ["tg"]}
+            {
+                "name": "All",
+                "watchlists": ["everything"],
+                "cooldown": 300,
+                "notify": ["tg"],
+            }
         ]
         cooldowns = {}
         result = check_alerts(aircraft, rules, WATCHLISTS, LOCATIONS, cooldowns)
@@ -45,7 +50,12 @@ class TestCheckAlerts:
     def test_squawk_match(self):
         aircraft = [_make_ac("aaa111", squawk="7700")]
         rules = [
-            {"name": "Emergency", "watchlists": ["emergencies"], "cooldown": 60, "notify": ["tg"]}
+            {
+                "name": "Emergency",
+                "watchlists": ["emergencies"],
+                "cooldown": 60,
+                "notify": ["tg"],
+            }
         ]
         cooldowns = {}
         result = check_alerts(aircraft, rules, WATCHLISTS, LOCATIONS, cooldowns)
@@ -56,7 +66,12 @@ class TestCheckAlerts:
     def test_squawk_no_match(self):
         aircraft = [_make_ac("aaa111", squawk="1234")]
         rules = [
-            {"name": "Emergency", "watchlists": ["emergencies"], "cooldown": 60, "notify": ["tg"]}
+            {
+                "name": "Emergency",
+                "watchlists": ["emergencies"],
+                "cooldown": 60,
+                "notify": ["tg"],
+            }
         ]
         result = check_alerts(aircraft, rules, WATCHLISTS, LOCATIONS, {})
         assert len(result) == 0
@@ -64,7 +79,12 @@ class TestCheckAlerts:
     def test_icao_match(self):
         aircraft = [_make_ac("abc123")]
         rules = [
-            {"name": "My Planes", "watchlists": ["my_planes"], "cooldown": 60, "notify": ["tg"]}
+            {
+                "name": "My Planes",
+                "watchlists": ["my_planes"],
+                "cooldown": 60,
+                "notify": ["tg"],
+            }
         ]
         result = check_alerts(aircraft, rules, WATCHLISTS, LOCATIONS, {})
         assert len(result) == 1
@@ -73,7 +93,12 @@ class TestCheckAlerts:
     def test_cooldown_blocks(self):
         aircraft = [_make_ac("aaa111")]
         rules = [
-            {"name": "All", "watchlists": ["everything"], "cooldown": 300, "notify": ["tg"]}
+            {
+                "name": "All",
+                "watchlists": ["everything"],
+                "cooldown": 300,
+                "notify": ["tg"],
+            }
         ]
         cooldowns = {("All", "aaa111"): time.time()}
         result = check_alerts(aircraft, rules, WATCHLISTS, LOCATIONS, cooldowns)
@@ -82,7 +107,12 @@ class TestCheckAlerts:
     def test_cooldown_expired(self):
         aircraft = [_make_ac("aaa111")]
         rules = [
-            {"name": "All", "watchlists": ["everything"], "cooldown": 300, "notify": ["tg"]}
+            {
+                "name": "All",
+                "watchlists": ["everything"],
+                "cooldown": 300,
+                "notify": ["tg"],
+            }
         ]
         cooldowns = {("All", "aaa111"): time.time() - 301}
         result = check_alerts(aircraft, rules, WATCHLISTS, LOCATIONS, cooldowns)
@@ -120,7 +150,12 @@ class TestCheckAlerts:
     def test_empty_hex_skipped(self):
         aircraft = [{"hex": "", "lat": 38.88, "lon": -77.06}]
         rules = [
-            {"name": "All", "watchlists": ["everything"], "cooldown": 60, "notify": ["tg"]}
+            {
+                "name": "All",
+                "watchlists": ["everything"],
+                "cooldown": 60,
+                "notify": ["tg"],
+            }
         ]
         result = check_alerts(aircraft, rules, WATCHLISTS, LOCATIONS, {})
         assert len(result) == 0
@@ -128,7 +163,12 @@ class TestCheckAlerts:
     def test_missing_watchlist_skipped(self):
         aircraft = [_make_ac("aaa111")]
         rules = [
-            {"name": "Ghost", "watchlists": ["nonexistent"], "cooldown": 60, "notify": ["tg"]}
+            {
+                "name": "Ghost",
+                "watchlists": ["nonexistent"],
+                "cooldown": 60,
+                "notify": ["tg"],
+            }
         ]
         result = check_alerts(aircraft, rules, WATCHLISTS, LOCATIONS, {})
         assert len(result) == 0
@@ -136,7 +176,12 @@ class TestCheckAlerts:
     def test_multiple_aircraft(self):
         aircraft = [_make_ac("aaa111"), _make_ac("bbb222")]
         rules = [
-            {"name": "All", "watchlists": ["everything"], "cooldown": 60, "notify": ["tg"]}
+            {
+                "name": "All",
+                "watchlists": ["everything"],
+                "cooldown": 60,
+                "notify": ["tg"],
+            }
         ]
         result = check_alerts(aircraft, rules, WATCHLISTS, LOCATIONS, {})
         assert len(result) == 2
@@ -144,7 +189,12 @@ class TestCheckAlerts:
     def test_cooldown_cleanup(self):
         aircraft = []
         rules = [
-            {"name": "All", "watchlists": ["everything"], "cooldown": 10, "notify": ["tg"]}
+            {
+                "name": "All",
+                "watchlists": ["everything"],
+                "cooldown": 10,
+                "notify": ["tg"],
+            }
         ]
         cooldowns = {("All", "old_plane"): time.time() - 100}
         check_alerts(aircraft, rules, WATCHLISTS, LOCATIONS, cooldowns)
@@ -153,7 +203,12 @@ class TestCheckAlerts:
     def test_sets_cooldown(self):
         aircraft = [_make_ac("aaa111")]
         rules = [
-            {"name": "All", "watchlists": ["everything"], "cooldown": 300, "notify": ["tg"]}
+            {
+                "name": "All",
+                "watchlists": ["everything"],
+                "cooldown": 300,
+                "notify": ["tg"],
+            }
         ]
         cooldowns = {}
         check_alerts(aircraft, rules, WATCHLISTS, LOCATIONS, cooldowns)
@@ -163,7 +218,12 @@ class TestCheckAlerts:
         # Aircraft near "home", should pick "home" not "far"
         aircraft = [_make_ac("abc123", lat=38.88, lon=-77.06)]
         rules = [
-            {"name": "My", "watchlists": ["my_planes"], "cooldown": 60, "notify": ["tg"]}
+            {
+                "name": "My",
+                "watchlists": ["my_planes"],
+                "cooldown": 60,
+                "notify": ["tg"],
+            }
         ]
         result = check_alerts(aircraft, rules, WATCHLISTS, LOCATIONS, {})
         assert len(result) == 1
