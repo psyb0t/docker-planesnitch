@@ -356,7 +356,13 @@ Re-download whenever you want fresh data. Or write your own CSV — just needs a
 
 Not 47 microservices. It watches planes and sends messages. That's it.
 
-Set `LOG_LEVEL` environment variable to `DEBUG` for verbose output (default: `INFO`). Other noisy libraries stay at `WARNING` so you only see planesnitch logs.
+Environment variables:
+
+| Variable              | Default       | Description                       |
+| --------------------- | ------------- | --------------------------------- |
+| `LOG_LEVEL`           | `INFO`        | Set to `DEBUG` for verbose output |
+| `PLANESNITCH_CONFIG`  | `config.yaml` | Path to config file               |
+| `PLANESNITCH_CSV_DIR` | `/csv`        | Path to CSV watchlist files       |
 
 A health endpoint runs on port `8080`. The Docker image includes a built-in healthcheck against it.
 

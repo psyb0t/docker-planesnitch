@@ -1,6 +1,7 @@
 """Configuration loading and unit conversion helpers."""
 
 import logging
+import os
 import re
 from typing import Any
 
@@ -13,7 +14,7 @@ FT_TO_M = 0.3048
 MI_TO_KM = 1.60934
 KTS_TO_KMH = 1.852
 KTS_TO_MPH = 1.15078
-DATA_DIR = "/csv"
+DATA_DIR = os.environ.get("PLANESNITCH_CSV_DIR", "/csv")
 
 VALID_DISPLAY_UNITS = ("aviation", "metric", "imperial")
 

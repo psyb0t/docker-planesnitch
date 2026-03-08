@@ -178,7 +178,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="planesnitch - aircraft watchlist alerter"
     )
-    parser.add_argument("--config", default="config.yaml", help="path to config file")
+    parser.add_argument(
+        "--config",
+        default=os.environ.get("PLANESNITCH_CONFIG", "config.yaml"),
+        help="path to config file",
+    )
     args = parser.parse_args()
 
     level = getattr(logging, os.environ.get("LOG_LEVEL", "INFO").upper(), logging.INFO)

@@ -48,6 +48,14 @@ class TestParseAlertCsv:
         result = parse_alert_csv(text)
         assert len(result) == 2
 
+    def test_short_rows(self):
+        text = "$ICAO,$Registration,$Operator,$Type\n0000c8,N917BC\n"
+        result = parse_alert_csv(text)
+        assert "0000c8" in result
+        assert result["0000c8"]["Registration"] == "N917BC"
+        assert result["0000c8"]["Operator"] == ""
+        assert result["0000c8"]["Type"] == ""
+
 
 class TestMatchesWatchlist:
     LOC = {"lat": 38.8719, "lon": -77.0563, "radius": "50km"}

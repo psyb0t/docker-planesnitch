@@ -29,7 +29,9 @@ def parse_alert_csv(text: str) -> dict[str, dict[str, str]]:
         icao = row.get(icao_key, "").strip().lower()
         if not icao:
             continue
-        result[icao] = {k: v.strip() for k, v in row.items() if k != icao_key}
+        result[icao] = {
+            k: (v.strip() if v else "") for k, v in row.items() if k != icao_key
+        }
 
     return result
 
