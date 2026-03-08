@@ -131,20 +131,48 @@ def _dedup_aircraft(
             seen[hex_code] = ac
 
 
+async def _fetch_source_locations(
+    src_type: str,
+    api_def: dict[str, str],
+    locations: dict[str, dict[str, Any]],
+    session: aiohttp.ClientSession,
+) -> list[dict[str, Any]]:
+    """Fetch all locations for one API source, 1s apart."""
+    results: list[dict[str, Any]] = []
+    first = True
+    for loc_name, loc in locations.items():
+        if not first:
+            await asyncio.sleep(1)
+        first = False
+        dist_km = resolve_distance_km(loc, "radius", default=150) or 150
+        dist_nm = max(1, min(int(dist_km / NM_TO_KM), 250))
+        label = f"{src_type}@{loc_name}"
+        log.debug("fetching from %s", label)
+        url = api_def["url"].format(
+            lat=loc["lat"],
+            lon=loc["lon"],
+            dist=dist_nm,
+        )
+        ac = await _fetch_api_source(label, url, api_def["key"], session)
+        results.extend(ac)
+    return results
+
+
 async def fetch_aircraft(
     sources: list[dict[str, Any]],
     locations: dict[str, dict[str, Any]],
     session: aiohttp.ClientSession,
 ) -> list[dict[str, Any]]:
-    tasks: list[tuple[str, asyncio.Task[list[dict[str, Any]]]]] = []
+    tasks: list[asyncio.Task[list[dict[str, Any]]]] = []
 
     for source in sources:
         src_type = source.get("type", "")
 
         if src_type == "ultrafeeder":
             log.debug("fetching from ultrafeeder")
-            task = asyncio.create_task(_fetch_ultrafeeder(source["url"], session))
-            tasks.append((src_type, task))
+            tasks.append(
+                asyncio.create_task(_fetch_ultrafeeder(source["url"], session))
+            )
             continue
 
         api_def = API_SOURCES.get(src_type)
@@ -152,25 +180,15 @@ async def fetch_aircraft(
             log.debug("skipping unknown source type: %s", src_type)
             continue
 
-        for loc_name, loc in locations.items():
-            dist_km = resolve_distance_km(loc, "radius", default=150) or 150
-            dist_nm = max(1, min(int(dist_km / NM_TO_KM), 250))
-            label = f"{src_type}@{loc_name}"
-            log.debug("fetching from %s", label)
-            url = api_def["url"].format(
-                lat=loc["lat"],
-                lon=loc["lon"],
-                dist=dist_nm,
+        tasks.append(
+            asyncio.create_task(
+                _fetch_source_locations(src_type, api_def, locations, session)
             )
-            task = asyncio.create_task(
-                _fetch_api_source(label, url, api_def["key"], session)
-            )
-            tasks.append((label, task))
+        )
 
     seen: dict[str, dict[str, Any]] = {}
-    for name, task in tasks:
+    for task in tasks:
         aircraft = await task
-        log.debug("%s returned %d aircraft", name, len(aircraft))
         _dedup_aircraft(seen, aircraft)
 
     log.debug("total unique aircraft after dedup: %d", len(seen))
