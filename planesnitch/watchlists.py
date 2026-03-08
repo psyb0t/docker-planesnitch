@@ -103,44 +103,43 @@ def matches_watchlist(
     wl_type = watchlist["type"]
     hex_code = aircraft.get("hex", "").lower()
 
+    # Common check: aircraft must be within the location's radius
+    dist = get_distance_km(aircraft, location)
+    if dist is None:
+        return None
+    radius_km = resolve_distance_km(location, "radius", default=150)
+    if dist > radius_km:
+        return None
+
+    base = {"distance_km": round(dist, 1)}
+
     if wl_type == "squawk":
         squawk = str(aircraft.get("squawk", ""))
         if squawk not in watchlist["values"]:
             return None
-        log.debug("squawk match: %s squawk=%s", hex_code, squawk)
-        return {"reason": "squawk", "squawk": squawk}
+        log.debug("squawk match: %s squawk=%s dist=%.1fkm", hex_code, squawk, dist)
+        return {**base, "reason": "squawk", "squawk": squawk}
 
     if wl_type == "icao":
         if hex_code not in watchlist["values"]:
             return None
-        log.debug("icao match: %s", hex_code)
-        return {"reason": "icao_match"}
+        log.debug("icao match: %s dist=%.1fkm", hex_code, dist)
+        return {**base, "reason": "icao_match"}
 
     if wl_type == "icao_csv":
         db = watchlist.get("db", {})
         if hex_code not in db:
             return None
-        log.debug("icao_csv match: %s info=%s", hex_code, db[hex_code])
-        return {"reason": "icao_csv_match", "info": db[hex_code]}
+        log.debug(
+            "icao_csv match: %s dist=%.1fkm info=%s", hex_code, dist, db[hex_code]
+        )
+        return {**base, "reason": "icao_csv_match", "info": db[hex_code]}
 
     if wl_type == "all":
-        dist = get_distance_km(aircraft, location)
-        if dist is None:
-            return None
-        radius_km = resolve_distance_km(location, "radius", default=150)
-        if dist > radius_km:
-            return None
         log.debug("all match: %s dist=%.1fkm", hex_code, dist)
-        return {"reason": "all", "distance_km": round(dist, 1)}
+        return {**base, "reason": "all"}
 
     if wl_type == "proximity":
-        dist = get_distance_km(aircraft, location)
-        if dist is None:
-            return None
-        radius_km = resolve_distance_km(location, "radius", default=150)
-        if dist > radius_km:
-            return None
-
         alt = aircraft.get("alt_baro")
         if isinstance(alt, str):
             return None
@@ -158,6 +157,6 @@ def matches_watchlist(
             dist,
             aircraft.get("alt_baro"),
         )
-        return {"reason": "proximity", "distance_km": round(dist, 1)}
+        return {**base, "reason": "proximity"}
 
     return None

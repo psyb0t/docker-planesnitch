@@ -53,47 +53,65 @@ class TestMatchesWatchlist:
     LOC = {"lat": 38.8719, "lon": -77.0563, "radius": "50km"}
 
     def test_squawk_match(self):
-        ac = {"hex": "abc123", "squawk": "7700"}
+        ac = {"hex": "abc123", "lat": 38.88, "lon": -77.06, "squawk": "7700"}
         wl = {"type": "squawk", "values": {"7500", "7600", "7700"}}
         result = matches_watchlist(ac, wl, self.LOC)
         assert result is not None
         assert result["reason"] == "squawk"
         assert result["squawk"] == "7700"
+        assert "distance_km" in result
 
     def test_squawk_no_match(self):
-        ac = {"hex": "abc123", "squawk": "1234"}
+        ac = {"hex": "abc123", "lat": 38.88, "lon": -77.06, "squawk": "1234"}
+        wl = {"type": "squawk", "values": {"7500", "7600", "7700"}}
+        assert matches_watchlist(ac, wl, self.LOC) is None
+
+    def test_squawk_no_position(self):
+        ac = {"hex": "abc123", "squawk": "7700"}
+        wl = {"type": "squawk", "values": {"7500", "7600", "7700"}}
+        assert matches_watchlist(ac, wl, self.LOC) is None
+
+    def test_squawk_too_far(self):
+        ac = {"hex": "abc123", "lat": 50.0, "lon": 0.0, "squawk": "7700"}
         wl = {"type": "squawk", "values": {"7500", "7600", "7700"}}
         assert matches_watchlist(ac, wl, self.LOC) is None
 
     def test_icao_match(self):
-        ac = {"hex": "abc123"}
+        ac = {"hex": "abc123", "lat": 38.88, "lon": -77.06}
         wl = {"type": "icao", "values": {"abc123", "def456"}}
         result = matches_watchlist(ac, wl, self.LOC)
         assert result is not None
         assert result["reason"] == "icao_match"
+        assert "distance_km" in result
 
     def test_icao_no_match(self):
-        ac = {"hex": "zzz999"}
+        ac = {"hex": "zzz999", "lat": 38.88, "lon": -77.06}
         wl = {"type": "icao", "values": {"abc123"}}
         assert matches_watchlist(ac, wl, self.LOC) is None
 
     def test_icao_case_insensitive(self):
-        ac = {"hex": "ABC123"}
+        ac = {"hex": "ABC123", "lat": 38.88, "lon": -77.06}
         wl = {"type": "icao", "values": {"abc123"}}
         result = matches_watchlist(ac, wl, self.LOC)
         assert result is not None
 
+    def test_icao_no_position(self):
+        ac = {"hex": "abc123"}
+        wl = {"type": "icao", "values": {"abc123"}}
+        assert matches_watchlist(ac, wl, self.LOC) is None
+
     def test_icao_csv_match(self):
-        ac = {"hex": "ae07e1"}
+        ac = {"hex": "ae07e1", "lat": 38.88, "lon": -77.06}
         db = {"ae07e1": {"Operator": "USAF"}}
         wl = {"type": "icao_csv", "db": db}
         result = matches_watchlist(ac, wl, self.LOC)
         assert result is not None
         assert result["reason"] == "icao_csv_match"
         assert result["info"]["Operator"] == "USAF"
+        assert "distance_km" in result
 
     def test_icao_csv_no_match(self):
-        ac = {"hex": "zzz999"}
+        ac = {"hex": "zzz999", "lat": 38.88, "lon": -77.06}
         wl = {"type": "icao_csv", "db": {"ae07e1": {}}}
         assert matches_watchlist(ac, wl, self.LOC) is None
 

@@ -58,7 +58,7 @@ Single YAML file. Define watchlists (what to snitch on), alert rules (when to lo
 Control how altitude, distance, and speed show up in alerts and webhook payloads:
 
 ```yaml
-display_units: aviation  # default
+display_units: aviation # default
 ```
 
 | Preset     | Altitude | Distance | Speed |
@@ -110,15 +110,15 @@ sources:
 
 ### Watchlists
 
-Tell the snitch what to look for:
+Tell the snitch what to look for. All types respect the location's radius — aircraft outside the radius are ignored regardless of type.
 
 | Type        | Matches On              | Source                                                                                                |
 | ----------- | ----------------------- | ----------------------------------------------------------------------------------------------------- |
-| `all`       | Every aircraft          | Matches anything in the location's radius                                                             |
+| `all`       | Every aircraft          | Everything within the location's radius                                                               |
 | `squawk`    | Transponder squawk code | Inline list                                                                                           |
 | `icao`      | ICAO hex address        | Inline list                                                                                           |
 | `icao_csv`  | ICAO hex from CSV       | Local file in `csv/` dir ([plane-alert-db](https://github.com/sdr-enthusiasts/plane-alert-db) format) |
-| `proximity` | Altitude filter         | Uses location radius + altitude limits                                                                |
+| `proximity` | Altitude filter         | Location radius + altitude limits                                                                     |
 
 ```yaml
 watchlists:
@@ -261,13 +261,13 @@ Webhook payload schema — always a JSON array, even for a single alert:
 
 The `match` object varies by watchlist type:
 
-| Watchlist Type | Match Fields |
-| -------------- | ------------ |
-| `squawk` | `{"reason": "squawk", "watchlist": "...", "squawk": "7700"}` |
-| `icao` | `{"reason": "icao_match", "watchlist": "..."}` |
-| `icao_csv` | `{"reason": "icao_csv_match", "watchlist": "...", "info": {"Operator": "...", ...}}` |
-| `all` | `{"reason": "all", "watchlist": "..."}` |
-| `proximity` | `{"reason": "proximity", "watchlist": "...", "distance_km": 12.3}` |
+| Watchlist Type | Match Fields                                                                         |
+| -------------- | ------------------------------------------------------------------------------------ |
+| `squawk`       | `{"reason": "squawk", "watchlist": "...", "squawk": "7700"}`                         |
+| `icao`         | `{"reason": "icao_match", "watchlist": "..."}`                                       |
+| `icao_csv`     | `{"reason": "icao_csv_match", "watchlist": "...", "info": {"Operator": "...", ...}}` |
+| `all`          | `{"reason": "all", "watchlist": "..."}`                                              |
+| `proximity`    | `{"reason": "proximity", "watchlist": "...", "distance_km": 12.3}`                   |
 
 ### What the alerts look like
 
@@ -308,8 +308,8 @@ Click the link, watch the bastard in real time on [globe.adsb.fi](https://globe.
 
 Uses the community-curated lists from [sdr-enthusiasts/plane-alert-db](https://github.com/sdr-enthusiasts/plane-alert-db) — 15,000+ aircraft catalogued by the fine degenerates of the plane spotting community:
 
-| List             | Count  | File                  |
-| ---------------- | ------ | --------------------- |
+| List             | Count  | File                                                                                                     |
+| ---------------- | ------ | -------------------------------------------------------------------------------------------------------- |
 | 🎖️ Military      | 8,709  | [`plane-alert-mil.csv`](https://github.com/sdr-enthusiasts/plane-alert-db/blob/main/plane-alert-mil.csv) |
 | 🏛️ Government    | 1,743  | [`plane-alert-gov.csv`](https://github.com/sdr-enthusiasts/plane-alert-db/blob/main/plane-alert-gov.csv) |
 | 🚔 Police        | 932    | [`plane-alert-pol.csv`](https://github.com/sdr-enthusiasts/plane-alert-db/blob/main/plane-alert-pol.csv) |

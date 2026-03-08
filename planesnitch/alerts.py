@@ -4,7 +4,6 @@ import logging
 import time
 from typing import Any
 
-from .geo import find_nearest_location
 from .watchlists import matches_watchlist
 
 log = logging.getLogger("planesnitch")
@@ -61,21 +60,7 @@ def check_alerts(
                 if not wl:
                     continue
 
-                if wl["type"] in ("proximity", "all"):
-                    for loc_name, loc in rule_locs.items():
-                        match = matches_watchlist(ac, wl, loc)
-                        if not match:
-                            continue
-                        match["watchlist"] = wl_name
-                        cooldowns[cooldown_key] = now
-                        triggered.append((ac, rule, match, loc_name, loc))
-                        matched = True
-                        break
-                else:
-                    nearest = find_nearest_location(ac, rule_locs)
-                    if not nearest:
-                        continue
-                    loc_name, loc = nearest
+                for loc_name, loc in rule_locs.items():
                     match = matches_watchlist(ac, wl, loc)
                     if not match:
                         continue
@@ -83,6 +68,7 @@ def check_alerts(
                     cooldowns[cooldown_key] = now
                     triggered.append((ac, rule, match, loc_name, loc))
                     matched = True
+                    break
 
                 if matched:
                     break
