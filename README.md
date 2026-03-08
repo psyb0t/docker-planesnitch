@@ -299,12 +299,12 @@ Uses the community-curated lists from [sdr-enthusiasts/plane-alert-db](https://g
 
 | List             | Count  | File                  |
 | ---------------- | ------ | --------------------- |
-| 🎖️ Military      | 8,709  | `plane-alert-mil.csv` |
-| 🏛️ Government    | 1,743  | `plane-alert-gov.csv` |
-| 🚔 Police        | 932    | `plane-alert-pol.csv` |
-| ✈️ Civilian      | 4,530  | `plane-alert-civ.csv` |
-| 🔒 Privacy (PIA) | 94     | `plane-alert-pia.csv` |
-| 📋 Everything    | 15,914 | `plane-alert-db.csv`  |
+| 🎖️ Military      | 8,709  | [`plane-alert-mil.csv`](https://github.com/sdr-enthusiasts/plane-alert-db/blob/main/plane-alert-mil.csv) |
+| 🏛️ Government    | 1,743  | [`plane-alert-gov.csv`](https://github.com/sdr-enthusiasts/plane-alert-db/blob/main/plane-alert-gov.csv) |
+| 🚔 Police        | 932    | [`plane-alert-pol.csv`](https://github.com/sdr-enthusiasts/plane-alert-db/blob/main/plane-alert-pol.csv) |
+| ✈️ Civilian      | 4,530  | [`plane-alert-civ.csv`](https://github.com/sdr-enthusiasts/plane-alert-db/blob/main/plane-alert-civ.csv) |
+| 🔒 Privacy (PIA) | 94     | [`plane-alert-pia.csv`](https://github.com/sdr-enthusiasts/plane-alert-db/blob/main/plane-alert-pia.csv) |
+| 📋 Everything    | 15,914 | [`plane-alert-db.csv`](https://github.com/sdr-enthusiasts/plane-alert-db/blob/main/plane-alert-db.csv)   |
 
 Download what you need into your `csv/` directory:
 
