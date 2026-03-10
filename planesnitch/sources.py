@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import time
 from typing import Any
 
 import aiohttp
@@ -32,6 +33,21 @@ API_SOURCES: dict[str, dict[str, str]] = {
 }
 
 MAX_GROUP_NM = 200
+DEFAULT_RATE_LIMIT_BACKOFF = 10.0
+
+# per-source cooldown: src_type -> earliest next request time
+_source_cooldowns: dict[str, float] = {}
+
+
+def _source_ready(src_type: str) -> bool:
+    return time.time() >= _source_cooldowns.get(src_type, 0)
+
+
+def _set_source_cooldown(src_type: str, retry_after: float | None) -> None:
+    backoff = retry_after if retry_after else DEFAULT_RATE_LIMIT_BACKOFF
+    until = time.time() + backoff
+    _source_cooldowns[src_type] = until
+    log.debug("%s: rate-limited, cooling down %.0fs", src_type, backoff)
 
 
 async def _fetch_api_source(
@@ -44,16 +60,46 @@ async def _fetch_api_source(
 
     Returns None on HTTP 400 (rejected — dist too large).
     Returns [] on other errors.
+    Sets per-source cooldown on 429.
     """
+    src_type = name.split("@")[0]
     log.debug("fetching %s: %s", name, url)
     try:
         async with session.get(url, timeout=aiohttp.ClientTimeout(total=15)) as resp:
             log.debug("%s response status: %s", name, resp.status)
             body = await resp.text()
+
             if resp.status == 400:
                 log.debug("%s rejected request (400): %s", name, body[:200])
                 return None
-            if resp.status not in (200, 429):
+
+            if resp.status == 429:
+                retry_after = resp.headers.get("Retry-After")
+                ra_val = None
+                if retry_after:
+                    try:
+                        ra_val = float(retry_after)
+                    except ValueError:
+                        pass
+                _set_source_cooldown(src_type, ra_val)
+
+                # some APIs send valid JSON on 429 (adsb.fi)
+                try:
+                    data = json.loads(body)
+                    ac_list = data.get(ac_key, [])
+                    if ac_list:
+                        log.debug(
+                            "%s rate-limited (429) but got %d aircraft",
+                            name,
+                            len(ac_list),
+                        )
+                        return ac_list
+                except (json.JSONDecodeError, ValueError):
+                    pass
+                log.debug("%s rate-limited (429), no data", name)
+                return []
+
+            if resp.status != 200:
                 log.warning(
                     "%s returned %d: %s",
                     name,
@@ -61,6 +107,7 @@ async def _fetch_api_source(
                     body[:200],
                 )
                 return []
+
             try:
                 data = json.loads(body)
             except (json.JSONDecodeError, ValueError):
@@ -71,8 +118,7 @@ async def _fetch_api_source(
                     body[:200],
                 )
                 return []
-            if resp.status == 429:
-                log.debug("%s rate-limited (429)", name)
+
             ac_list = data.get(ac_key, [])
             log.debug("%s returned %d aircraft", name, len(ac_list))
             for ac in ac_list:
@@ -198,83 +244,22 @@ def _auto_group_locations(
     return groups
 
 
-async def _fetch_source_locations(
-    src_type: str,
-    api_def: dict[str, str],
-    groups: list[list[dict[str, Any]]],
-    session: aiohttp.ClientSession,
-) -> list[dict[str, Any]]:
-    """Fetch all location groups for one API source."""
-    results: list[dict[str, Any]] = []
-    first = True
-
-    for group in groups:
-        if not first:
-            await asyncio.sleep(5)
-        first = False
-
-        if len(group) == 1:
-            loc = group[0]
-            dist_nm = max(1, min(int(loc["radius_km"] / NM_TO_KM), MAX_GROUP_NM))
-            label = f"{src_type}@{loc['_key']}"
-            url = api_def["url"].format(lat=loc["lat"], lon=loc["lon"], dist=dist_nm)
-            ac = await _fetch_api_source(label, url, api_def["key"], session)
-            if ac is not None:
-                results.extend(ac)
-            continue
-
-        # grouped request
-        clat, clon, radius_km = bounding_circle(group)
-        dist_nm = max(1, int(radius_km / NM_TO_KM))
-        keys = [loc["_key"] for loc in group]
-        label = f"{src_type}@auto({','.join(keys)})"
-        log.debug(
-            "%s: auto-grouped %d locations, circle %.4f,%.4f r=%dnm",
-            label,
-            len(group),
-            clat,
-            clon,
-            dist_nm,
-        )
-        url = api_def["url"].format(lat=clat, lon=clon, dist=dist_nm)
-        ac = await _fetch_api_source(label, url, api_def["key"], session)
-
-        if ac is not None:
-            results.extend(ac)
-            continue
-
-        # 400 — API rejected, fall back to individual requests
-        log.info(
-            "%s: rejected (400), splitting into %d individual requests",
-            label,
-            len(group),
-        )
-        for loc in group:
-            await asyncio.sleep(5)
-            dist_nm = max(1, min(int(loc["radius_km"] / NM_TO_KM), MAX_GROUP_NM))
-            loc_label = f"{src_type}@{loc['_key']}"
-            url = api_def["url"].format(lat=loc["lat"], lon=loc["lon"], dist=dist_nm)
-            ac = await _fetch_api_source(loc_label, url, api_def["key"], session)
-            if ac is not None:
-                results.extend(ac)
-
-    return results
-
-
 async def fetch_aircraft(
     sources: list[dict[str, Any]],
     locations: dict[str, dict[str, Any]],
     session: aiohttp.ClientSession,
 ) -> list[dict[str, Any]]:
     groups = _auto_group_locations(locations)
-    tasks: list[asyncio.Task[list[dict[str, Any]]]] = []
+
+    # separate ultrafeeder (no grouping, no rate limits) from API sources
+    api_sources: list[tuple[str, dict[str, str]]] = []
+    uf_tasks: list[asyncio.Task[list[dict[str, Any]]]] = []
 
     for source in sources:
         src_type = source.get("type", "")
 
         if src_type == "ultrafeeder":
-            log.debug("fetching from ultrafeeder")
-            tasks.append(
+            uf_tasks.append(
                 asyncio.create_task(_fetch_ultrafeeder(source["url"], session))
             )
             continue
@@ -284,16 +269,65 @@ async def fetch_aircraft(
             log.debug("skipping unknown source type: %s", src_type)
             continue
 
-        tasks.append(
-            asyncio.create_task(
-                _fetch_source_locations(src_type, api_def, groups, session)
-            )
-        )
+        api_sources.append((src_type, api_def))
 
     seen: dict[str, dict[str, Any]] = {}
-    for task in tasks:
-        aircraft = await task
-        _dedup_aircraft(seen, aircraft)
+
+    # process groups — 1s apart, all ready sources in parallel per group
+    for i, group in enumerate(groups):
+        if i > 0:
+            await asyncio.sleep(1)
+
+        # compute circle for this group
+        if len(group) == 1:
+            loc = group[0]
+            lat, lon = loc["lat"], loc["lon"]
+            dist_nm = max(1, min(int(loc["radius_km"] / NM_TO_KM), MAX_GROUP_NM))
+            group_label = loc["_key"]
+        else:
+            lat, lon, radius_km = bounding_circle(group)
+            dist_nm = max(1, int(radius_km / NM_TO_KM))
+            keys = [loc["_key"] for loc in group]
+            group_label = f"auto({','.join(keys)})"
+            log.debug(
+                "%s: %d locations, circle %.4f,%.4f r=%dnm",
+                group_label,
+                len(group),
+                lat,
+                lon,
+                dist_nm,
+            )
+
+        # fire all ready sources in parallel
+        group_tasks: list[asyncio.Task[list[dict[str, Any]] | None]] = []
+        for src_type, api_def in api_sources:
+            if not _source_ready(src_type):
+                remaining = _source_cooldowns[src_type] - time.time()
+                log.debug(
+                    "skipping %s for %s (cooling down, %.0fs left)",
+                    src_type,
+                    group_label,
+                    remaining,
+                )
+                continue
+
+            label = f"{src_type}@{group_label}"
+            url = api_def["url"].format(lat=lat, lon=lon, dist=dist_nm)
+            group_tasks.append(
+                asyncio.create_task(
+                    _fetch_api_source(label, url, api_def["key"], session)
+                )
+            )
+
+        for task in group_tasks:
+            result = await task
+            if result is not None:
+                _dedup_aircraft(seen, result)
+
+    # collect ultrafeeder results
+    for task in uf_tasks:
+        ac = await task
+        _dedup_aircraft(seen, ac)
 
     log.debug("total unique aircraft after dedup: %d", len(seen))
     return list(seen.values())
