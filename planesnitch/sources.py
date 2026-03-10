@@ -210,7 +210,7 @@ async def _fetch_source_locations(
 
     for group in groups:
         if not first:
-            await asyncio.sleep(1)
+            await asyncio.sleep(5)
         first = False
 
         if len(group) == 1:
@@ -250,7 +250,7 @@ async def _fetch_source_locations(
             len(group),
         )
         for loc in group:
-            await asyncio.sleep(1)
+            await asyncio.sleep(5)
             dist_nm = max(1, min(int(loc["radius_km"] / NM_TO_KM), MAX_GROUP_NM))
             loc_label = f"{src_type}@{loc['_key']}"
             url = api_def["url"].format(lat=loc["lat"], lon=loc["lon"], dist=dist_nm)
