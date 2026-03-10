@@ -23,10 +23,23 @@ No SDR required. No antenna. No hardware. Just an internet connection and a conf
 ## 🚀 Quick Start
 
 ```bash
-# grab the example config and edit it with your location + notification settings
-curl -sL https://raw.githubusercontent.com/psyb0t/docker-planesnitch/main/config.yaml.example -o config.yaml
+# grab the example config and edit it
+# with your location + notification settings
+curl -sL \
+  https://raw.githubusercontent.com/psyb0t/docker-planesnitch/main/config.yaml.example \
+  -o config.yaml
 
-# optional: download CSV watchlists for military/gov/police tracking (see Plane-Alert-DB section below)
+# optional: download CSV watchlists for
+# military/gov/police tracking
+# (see Plane-Alert-DB section below)
+# mkdir -p csv
+# BASE=https://raw.githubusercontent.com/sdr-enthusiasts/plane-alert-db/main
+# curl -sLo csv/plane-alert-mil.csv $BASE/plane-alert-mil.csv
+# curl -sLo csv/plane-alert-gov.csv $BASE/plane-alert-gov.csv
+# curl -sLo csv/plane-alert-pol.csv $BASE/plane-alert-pol.csv
+# curl -sLo csv/plane-alert-civ.csv $BASE/plane-alert-civ.csv
+# curl -sLo csv/plane-alert-pia.csv $BASE/plane-alert-pia.csv
+# curl -sLo csv/plane-alert-db.csv  $BASE/plane-alert-db.csv
 
 # let it rip — without CSV watchlists
 docker run \
