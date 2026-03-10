@@ -46,13 +46,60 @@ def parse_duration(value: Any) -> int:
     return hours * 3600 + minutes * 60 + seconds
 
 
-SQUAWK_LABELS = {
-    "7500": "HIJACK",
-    "7600": "RADIO FAILURE",
-    "7700": "EMERGENCY",
-    "7400": "UNMANNED LOST LINK",
-    "7777": "MILITARY INTERCEPT",
+# Exact squawk codes: code -> (meaning, scope)
+_SQUAWK_EXACT: dict[str, tuple[str, str]] = {
+    # Global / ICAO
+    "7700": ("Emergency", "global"),
+    "7600": ("Radio failure", "global"),
+    "7500": ("Hijack", "global"),
+    "7400": ("Unmanned lost link", "global"),
+    "7777": ("Military intercept", "global"),
+    "0000": ("Military reserved", "global"),
+    "2000": ("Entering SSR area", "global"),
+    "1000": ("Mode S / ADS-B correlation", "global"),
+    # Europe / ICAO
+    "7000": ("VFR", "EU"),
+    # US / Canada
+    "1200": ("VFR", "US"),
+    "1202": ("Glider VFR", "US"),
+    "1255": ("Firefighting", "US"),
+    "1276": ("ADIZ penetration, no comms", "US"),
+    "1277": ("SAR mission", "US"),
+    "4000": ("Military ops", "US"),
 }
+
+# Range-based squawk codes: (start, end, meaning, scope)
+_SQUAWK_RANGES: list[tuple[int, int, str, str]] = [
+    (4400, 4477, "High altitude / pressure suit", "US"),
+    (4401, 4433, "Federal law enforcement", "US"),
+    (4466, 4477, "Federal law enforcement", "US"),
+    (5000, 5000, "DoD reserved", "US"),
+    (5400, 5400, "DoD reserved", "US"),
+    (6100, 6100, "DoD reserved", "US"),
+    (6400, 6400, "DoD reserved", "US"),
+    (7501, 7577, "DoD reserved", "US"),
+]
+
+
+def squawk_meaning(
+    code: str | None,
+) -> dict[str, str] | None:
+    """Look up squawk code meaning. Returns dict with meaning+scope or None."""
+    if not code:
+        return None
+    code = code.strip()
+    exact = _SQUAWK_EXACT.get(code)
+    if exact:
+        return {"meaning": exact[0], "scope": exact[1]}
+    try:
+        num = int(code)
+    except ValueError:
+        return None
+    # More specific ranges first (sorted narrower ranges earlier)
+    for start, end, meaning, scope in _SQUAWK_RANGES:
+        if start <= num <= end:
+            return {"meaning": meaning, "scope": scope}
+    return None
 
 
 _UNIT_RE = re.compile(r"^([\d.]+)\s*(km|mi|nm|ft|m)$", re.IGNORECASE)

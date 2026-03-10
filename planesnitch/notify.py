@@ -5,9 +5,16 @@ from typing import Any
 
 import aiohttp
 
-from .config import (SQUAWK_LABELS, convert_altitude, convert_distance,
-                     convert_speed, format_altitude, format_distance,
-                     format_speed, unit_labels)
+from .config import (
+    convert_altitude,
+    convert_distance,
+    convert_speed,
+    format_altitude,
+    format_distance,
+    format_speed,
+    squawk_meaning,
+    unit_labels,
+)
 from .geo import get_distance_km
 
 log = logging.getLogger("planesnitch")
@@ -64,9 +71,11 @@ def format_message(
 
     if reason == "squawk":
         sq = match_info.get("squawk", "")
-        label = SQUAWK_LABELS.get(sq)
-        if label:
-            lines.append(f"\U0001f6a8 squawk {sq} ({label})")
+        sq_info = squawk_meaning(sq)
+        if sq_info:
+            lines.append(
+                f"\U0001f6a8 squawk {sq}" f" ({sq_info['meaning']}, {sq_info['scope']})"
+            )
         else:
             lines.append(f"\U0001f6a8 squawk {sq}")
 
@@ -114,9 +123,12 @@ def format_message(
         lines.append(f"\U0001f4a8 {format_speed(gs, display_units)}")
 
     if squawk and reason != "squawk":
-        sq_label = SQUAWK_LABELS.get(squawk)
-        if sq_label:
-            lines.append(f"\U0001f4e1 squawk {squawk} ({sq_label})")
+        sq_info = squawk_meaning(squawk)
+        if sq_info:
+            lines.append(
+                f"\U0001f4e1 squawk {squawk}"
+                f" ({sq_info['meaning']}, {sq_info['scope']})"
+            )
         else:
             lines.append(f"\U0001f4e1 squawk {squawk}")
 
@@ -151,6 +163,7 @@ def format_webhook_payload(
             "owner_operator": aircraft.get("ownOp"),
             "year": aircraft.get("year"),
             "squawk": aircraft.get("squawk"),
+            "squawk_meaning": squawk_meaning(aircraft.get("squawk")),
             "emergency": aircraft.get("emergency"),
             "altitude": (
                 convert_altitude(alt, display_units)

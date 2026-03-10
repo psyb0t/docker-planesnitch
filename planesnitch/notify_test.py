@@ -96,7 +96,7 @@ class TestFormatMessage:
             "Home",
         )
         assert "7700" in msg
-        assert "EMERGENCY" in msg
+        assert "Emergency, global" in msg
 
     def test_squawk_field_shown_when_not_reason(self):
         msg = format_message(
