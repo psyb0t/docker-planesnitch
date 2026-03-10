@@ -26,6 +26,31 @@ def get_distance_km(aircraft: dict[str, Any], location: dict[str, Any]) -> float
     return calc_distance_km(location["lat"], location["lon"], ac_lat, ac_lon)
 
 
+def bounding_circle(
+    locations: list[dict[str, Any]],
+) -> tuple[float, float, float]:
+    """Compute a bounding circle for a list of locations.
+
+    Each location must have lat, lon, and optionally radius_km.
+    Returns (center_lat, center_lon, radius_km).
+    """
+    if len(locations) == 1:
+        loc = locations[0]
+        return loc["lat"], loc["lon"], loc.get("radius_km", 150)
+
+    clat = sum(loc["lat"] for loc in locations) / len(locations)
+    clon = sum(loc["lon"] for loc in locations) / len(locations)
+
+    radius = 0.0
+    for loc in locations:
+        dist = calc_distance_km(clat, clon, loc["lat"], loc["lon"])
+        edge = dist + loc.get("radius_km", 150)
+        if edge > radius:
+            radius = edge
+
+    return clat, clon, radius
+
+
 def find_nearest_location(
     aircraft: dict[str, Any], locations: dict[str, dict[str, Any]]
 ) -> tuple[str, dict[str, Any]] | None:

@@ -8,6 +8,7 @@ from typing import Any
 import aiohttp
 
 from .config import NM_TO_KM, resolve_distance_km
+from .geo import bounding_circle
 
 log = logging.getLogger("planesnitch")
 
@@ -30,18 +31,28 @@ API_SOURCES: dict[str, dict[str, str]] = {
     },
 }
 
+MAX_GROUP_NM = 200
+
 
 async def _fetch_api_source(
     name: str,
     url: str,
     ac_key: str,
     session: aiohttp.ClientSession,
-) -> list[dict[str, Any]]:
+) -> list[dict[str, Any]] | None:
+    """Fetch aircraft from an API source.
+
+    Returns None on HTTP 400 (rejected — dist too large).
+    Returns [] on other errors.
+    """
     log.debug("fetching %s: %s", name, url)
     try:
         async with session.get(url, timeout=aiohttp.ClientTimeout(total=15)) as resp:
             log.debug("%s response status: %s", name, resp.status)
             body = await resp.text()
+            if resp.status == 400:
+                log.debug("%s rejected request (400): %s", name, body[:200])
+                return None
             if resp.status not in (200, 429):
                 log.warning(
                     "%s returned %d: %s",
@@ -131,30 +142,122 @@ def _dedup_aircraft(
             seen[hex_code] = ac
 
 
+def _auto_group_locations(
+    locations: dict[str, dict[str, Any]],
+) -> list[list[dict[str, Any]]]:
+    """Cluster locations into groups that fit within MAX_GROUP_NM.
+
+    Each entry gets radius_km and _key added.
+    Returns list of groups, each group is a list of loc dicts.
+    """
+    groups: list[list[dict[str, Any]]] = []
+
+    for key, loc in locations.items():
+        r_km = resolve_distance_km(loc, "radius", default=150) or 150
+        entry = {**loc, "radius_km": r_km, "_key": key}
+
+        placed = False
+        for group in groups:
+            test = group + [entry]
+            _, _, radius_km = bounding_circle(test)
+            test_nm = int(radius_km / NM_TO_KM)
+            if test_nm > MAX_GROUP_NM:
+                existing = [e["_key"] for e in group]
+                log.debug(
+                    "auto-group: %s doesn't fit with [%s] (%dnm > %dnm)",
+                    key,
+                    ",".join(existing),
+                    test_nm,
+                    MAX_GROUP_NM,
+                )
+                continue
+            group.append(entry)
+            existing = [e["_key"] for e in group]
+            log.debug(
+                "auto-group: %s joined [%s] (%dnm)",
+                key,
+                ",".join(existing),
+                test_nm,
+            )
+            placed = True
+            break
+
+        if not placed:
+            log.debug("auto-group: %s starts new group", key)
+            groups.append([entry])
+
+    for group in groups:
+        keys = [e["_key"] for e in group]
+        _, _, r_km = bounding_circle(group)
+        log.debug(
+            "auto-group result: [%s] — %dnm",
+            ",".join(keys),
+            int(r_km / NM_TO_KM),
+        )
+
+    return groups
+
+
 async def _fetch_source_locations(
     src_type: str,
     api_def: dict[str, str],
-    locations: dict[str, dict[str, Any]],
+    groups: list[list[dict[str, Any]]],
     session: aiohttp.ClientSession,
 ) -> list[dict[str, Any]]:
-    """Fetch all locations for one API source, 1s apart."""
+    """Fetch all location groups for one API source."""
     results: list[dict[str, Any]] = []
     first = True
-    for loc_name, loc in locations.items():
+
+    for group in groups:
         if not first:
             await asyncio.sleep(1)
         first = False
-        dist_km = resolve_distance_km(loc, "radius", default=150) or 150
-        dist_nm = max(1, min(int(dist_km / NM_TO_KM), 250))
-        label = f"{src_type}@{loc_name}"
-        log.debug("fetching from %s", label)
-        url = api_def["url"].format(
-            lat=loc["lat"],
-            lon=loc["lon"],
-            dist=dist_nm,
+
+        if len(group) == 1:
+            loc = group[0]
+            dist_nm = max(1, min(int(loc["radius_km"] / NM_TO_KM), MAX_GROUP_NM))
+            label = f"{src_type}@{loc['_key']}"
+            url = api_def["url"].format(lat=loc["lat"], lon=loc["lon"], dist=dist_nm)
+            ac = await _fetch_api_source(label, url, api_def["key"], session)
+            if ac is not None:
+                results.extend(ac)
+            continue
+
+        # grouped request
+        clat, clon, radius_km = bounding_circle(group)
+        dist_nm = max(1, int(radius_km / NM_TO_KM))
+        keys = [loc["_key"] for loc in group]
+        label = f"{src_type}@auto({','.join(keys)})"
+        log.debug(
+            "%s: auto-grouped %d locations, circle %.4f,%.4f r=%dnm",
+            label,
+            len(group),
+            clat,
+            clon,
+            dist_nm,
         )
+        url = api_def["url"].format(lat=clat, lon=clon, dist=dist_nm)
         ac = await _fetch_api_source(label, url, api_def["key"], session)
-        results.extend(ac)
+
+        if ac is not None:
+            results.extend(ac)
+            continue
+
+        # 400 — API rejected, fall back to individual requests
+        log.info(
+            "%s: rejected (400), splitting into %d individual requests",
+            label,
+            len(group),
+        )
+        for loc in group:
+            await asyncio.sleep(1)
+            dist_nm = max(1, min(int(loc["radius_km"] / NM_TO_KM), MAX_GROUP_NM))
+            loc_label = f"{src_type}@{loc['_key']}"
+            url = api_def["url"].format(lat=loc["lat"], lon=loc["lon"], dist=dist_nm)
+            ac = await _fetch_api_source(loc_label, url, api_def["key"], session)
+            if ac is not None:
+                results.extend(ac)
+
     return results
 
 
@@ -163,6 +266,7 @@ async def fetch_aircraft(
     locations: dict[str, dict[str, Any]],
     session: aiohttp.ClientSession,
 ) -> list[dict[str, Any]]:
+    groups = _auto_group_locations(locations)
     tasks: list[asyncio.Task[list[dict[str, Any]]]] = []
 
     for source in sources:
@@ -182,7 +286,7 @@ async def fetch_aircraft(
 
         tasks.append(
             asyncio.create_task(
-                _fetch_source_locations(src_type, api_def, locations, session)
+                _fetch_source_locations(src_type, api_def, groups, session)
             )
         )
 

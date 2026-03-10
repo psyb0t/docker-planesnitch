@@ -7,4 +7,6 @@ __pycache__/
 *.pyc
 *.bak
 run.sh
+github-update.sh
 CLAUDE.md
+research_files
