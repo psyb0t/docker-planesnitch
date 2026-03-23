@@ -9,12 +9,9 @@ __pycache__/
 .research_files/
 research_files/
 .github/
-*.md
 *.bak
 *.pyc
 run.sh
 github-update.sh
 test_webhook_server.py
-Makefile
-LICENSE
 CLAUDE.md
