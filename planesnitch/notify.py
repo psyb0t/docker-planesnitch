@@ -172,9 +172,9 @@ def format_webhook_payload(
             ),
             "lat": aircraft.get("lat"),
             "lon": aircraft.get("lon"),
-            "speed": convert_speed(gs, display_units) if gs else None,
+            "speed": convert_speed(gs, display_units) if gs is not None else None,
             "track": aircraft.get("track"),
-            "distance": convert_distance(dist, display_units) if dist else None,
+            "distance": convert_distance(dist, display_units) if dist is not None else None,
         },
     }
 

@@ -394,6 +394,14 @@ class TestLoadConfig:
         finally:
             os.unlink(path)
 
+    def test_empty_file(self):
+        path = self._write_config("")
+        try:
+            with pytest.raises(SystemExit, match="config file is empty"):
+                load_config(path)
+        finally:
+            os.unlink(path)
+
     def test_empty_locations(self):
         path = self._write_config(self._minimal_config(locations={}))
         try:
@@ -428,5 +436,100 @@ class TestLoadConfig:
         try:
             with pytest.raises(SystemExit, match="invalid cooldown"):
                 load_config(path)
+        finally:
+            os.unlink(path)
+
+    def test_invalid_source_type(self):
+        path = self._write_config(
+            self._minimal_config(sources=[{"type": "bananas"}])
+        )
+        try:
+            with pytest.raises(SystemExit, match="sources\\[0\\]\\.type"):
+                load_config(path)
+        finally:
+            os.unlink(path)
+
+    def test_ultrafeeder_requires_url(self):
+        path = self._write_config(
+            self._minimal_config(sources=[{"type": "ultrafeeder"}])
+        )
+        try:
+            with pytest.raises(SystemExit, match="sources\\[0\\]\\.url"):
+                load_config(path)
+        finally:
+            os.unlink(path)
+
+    def test_watchlist_reference_must_exist(self):
+        cfg_str = self._minimal_config()
+        import yaml
+
+        cfg = yaml.safe_load(cfg_str)
+        cfg["alerts"][0]["watchlists"] = ["missing"]
+        path = self._write_config(yaml.dump(cfg))
+        try:
+            with pytest.raises(SystemExit, match="unknown watchlist"):
+                load_config(path)
+        finally:
+            os.unlink(path)
+
+    def test_location_reference_must_exist(self):
+        cfg_str = self._minimal_config()
+        import yaml
+
+        cfg = yaml.safe_load(cfg_str)
+        cfg["alerts"][0]["locations"] = ["missing"]
+        path = self._write_config(yaml.dump(cfg))
+        try:
+            with pytest.raises(SystemExit, match="unknown location"):
+                load_config(path)
+        finally:
+            os.unlink(path)
+
+    def test_notification_reference_must_exist(self):
+        cfg_str = self._minimal_config()
+        import yaml
+
+        cfg = yaml.safe_load(cfg_str)
+        cfg["alerts"][0]["notify"] = ["missing"]
+        path = self._write_config(yaml.dump(cfg))
+        try:
+            with pytest.raises(SystemExit, match="unknown notification"):
+                load_config(path)
+        finally:
+            os.unlink(path)
+
+    def test_referenced_telegram_notification_requires_fields(self):
+        cfg_str = self._minimal_config()
+        import yaml
+
+        cfg = yaml.safe_load(cfg_str)
+        cfg["notifications"]["tg"]["bot_token"] = ""
+        path = self._write_config(yaml.dump(cfg))
+        try:
+            with pytest.raises(SystemExit, match="notification 'tg'\\.bot_token"):
+                load_config(path)
+        finally:
+            os.unlink(path)
+
+    def test_unused_telegram_notification_may_be_blank(self):
+        path = self._write_config(
+            self._minimal_config(
+                alerts=[
+                    {
+                        "name": "Test",
+                        "watchlists": ["everything"],
+                        "cooldown": "1m",
+                        "notify": ["hook"],
+                    }
+                ],
+                notifications={
+                    "tg": {"type": "telegram", "bot_token": "", "chat_id": ""},
+                    "hook": {"type": "webhook", "url": "https://example.com/hook"},
+                },
+            )
+        )
+        try:
+            cfg = load_config(path)
+            assert cfg["notifications"]["tg"]["bot_token"] == ""
         finally:
             os.unlink(path)

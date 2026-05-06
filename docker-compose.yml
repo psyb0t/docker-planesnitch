@@ -1,0 +1,16 @@
+services:
+  planesnitch:
+    image: ${PLANESNITCH_IMAGE:-psyb0t/planesnitch}
+    build:
+      context: .
+    container_name: ${PLANESNITCH_CONTAINER_NAME:-planesnitch}
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      PLANESNITCH_CONFIG: /app/config.yaml
+      PLANESNITCH_CSV_DIR: /csv
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ./csv:/csv:ro

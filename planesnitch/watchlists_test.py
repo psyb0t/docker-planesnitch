@@ -1,7 +1,5 @@
 """Tests for watchlists.py."""
 
-import pytest
-
 from .watchlists import matches_watchlist, parse_alert_csv
 
 

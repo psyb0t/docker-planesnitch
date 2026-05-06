@@ -2,11 +2,12 @@
 
 Snitches on every interesting aircraft that dares fly near your locations — military jets, government spooks, emergency squawks, sketchy low-flyers, or whatever the fuck you tell it to watch for. Monitor multiple locations at once — your house, your office, grandma's house, Area 51, whatever. Rats them out straight to your Telegram or webhook like a paranoid neighbor with radar.
 
-No SDR required. No antenna. No hardware. Just an internet connection and a config file. Alerts via Telegram and/or webhooks. Works anywhere on the fuckin planet — and for as many places as you want.
+No SDR required. No antenna. No hardware. Just an internet connection and a config file. Alerts via Telegram, webhooks, and a built-in browser dashboard. Works anywhere on the fuckin planet — and for as many places as you want.
 
 ## Table of Contents
 
 - [🚀 Quick Start](#-quick-start)
+- [🧪 Development](#-development)
 - [⚙️ Configuration](#️-configuration)
   - [Display Units](#display-units)
   - [Locations](#locations)
@@ -23,6 +24,15 @@ No SDR required. No antenna. No hardware. Just an internet connection and a conf
 ## 🚀 Quick Start
 
 ```bash
+# or use the helper script if you want the lazy path
+./quick-start.sh
+
+# or use docker compose
+docker compose up --build
+docker compose up -d
+docker compose logs -f
+docker compose down
+
 # grab the example config and edit it
 # with your location + notification settings
 curl -sL \
@@ -61,6 +71,30 @@ docker run \
 2026-03-07 22:25:40 [planesnitch] INFO fetched 14 aircraft
 2026-03-07 22:25:40 [planesnitch] INFO ALERT [Military Spotter] [home] ae07e1 TEDDY64
 ```
+
+## 🧪 Development
+
+Run it locally without the Docker dance:
+
+```bash
+python -m venv .venv
+. .venv/bin/activate
+python -m pip install -e .[dev]
+python -m pytest -q
+python -m ruff check .
+python -m planesnitch --config config.yaml
+```
+
+Or use the `Makefile` targets:
+
+```bash
+make install-dev
+make test
+make lint
+make build
+```
+
+When it is running, open `http://localhost:8080/` for the built-in browser UI.
 
 ## ⚙️ Configuration
 
@@ -361,9 +395,11 @@ Re-download whenever you want fresh data. Or write your own CSV — just needs a
 │   └── notify.py         # telegram + webhook formatting + sending
 ├── config.yaml.example   # example config — copy to config.yaml and fill in your shit
 ├── csv/                  # CSV watchlists go here, mounted to /csv
-├── run.sh                # build + run in docker
-├── requirements.txt
+├── quick-start.sh        # fetch sample config + CSVs and run the image
+├── docker-compose.yml
+├── pyproject.toml
 ├── Dockerfile
+├── Makefile
 └── README.md
 ```
 
@@ -377,7 +413,15 @@ Environment variables:
 | `PLANESNITCH_CONFIG`  | `config.yaml` | Path to config file               |
 | `PLANESNITCH_CSV_DIR` | `/csv`        | Path to CSV watchlist files       |
 
-A health endpoint runs on port `8080`. The Docker image includes a built-in healthcheck against it.
+Port `8080` now serves three things:
+
+| Path         | What it does |
+| ------------ | ------------ |
+| `/`          | Live browser dashboard with recent alerts and poll state |
+| `/api/state` | JSON snapshot for the dashboard |
+| `/health`    | Health endpoint with `starting`, `ok`, or `degraded` |
+
+The Docker image includes a built-in healthcheck against `/health`.
 
 ## 📝 License
 

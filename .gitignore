@@ -3,6 +3,11 @@ config.test.yaml
 csv/
 __pycache__/
 .mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.venv/
+.idea/
+*.egg-info/
 .research_files/
 *.pyc
 *.bak
