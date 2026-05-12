@@ -232,6 +232,17 @@ When an aircraft has an ICAO type designator (field `t`), planesnitch fetches th
 
 Images are cached in `images/` (mount `-v ./images:/images` to persist across restarts). Misses are recorded as `.notfound` markers so types without images aren't re-fetched. The cache survives indefinitely — delete the dir to force a refresh.
 
+To opt out per notification target (e.g. avoid blowing up a chat with photos, or cut webhook payload size on Home Assistant), set `attach_image: false` on the target. Default is `true`. If every target attached to a rule opts out, planesnitch skips the doc8643 fetch entirely for that alert — no wasted bandwidth or disk.
+
+```yaml
+notifications:
+  tg_main:
+    type: telegram
+    bot_token: "..."
+    chat_id: "..."
+    attach_image: false   # text-only alerts to this chat
+```
+
 **Webhook** — POSTs a JSON array of alert objects per poll cycle:
 
 ```yaml

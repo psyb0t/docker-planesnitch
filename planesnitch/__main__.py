@@ -130,8 +130,13 @@ async def run(config_path: str, config: dict[str, Any]) -> None:
                 )
 
                 ac_type = (ac.get("t") or "").strip().upper()
+                rule_notif_names = rule.get("notify", [])
+                any_wants_image = any(
+                    notifications.get(n, {}).get("attach_image", True)
+                    for n in rule_notif_names
+                )
                 image_bytes: bytes | None = None
-                if ac_type:
+                if ac_type and any_wants_image:
                     if ac_type in image_cache:
                         image_bytes = image_cache[ac_type]
                     else:
@@ -139,11 +144,15 @@ async def run(config_path: str, config: dict[str, Any]) -> None:
                         image_bytes = read_image_bytes(img_path) if img_path else None
                         image_cache[ac_type] = image_bytes
 
-                for notif_name in rule.get("notify", []):
+                for notif_name in rule_notif_names:
                     notif = notifications.get(notif_name)
                     if not notif:
                         log.warning("notification target %s not found", notif_name)
                         continue
+
+                    target_image = (
+                        image_bytes if notif.get("attach_image", True) else None
+                    )
 
                     if notif.get("type") == "telegram":
                         msg = format_message(
@@ -155,7 +164,7 @@ async def run(config_path: str, config: dict[str, Any]) -> None:
                             display_units,
                         )
                         tg_queues.setdefault(notif_name, []).append(
-                            {"text": msg, "image": image_bytes, "type": ac_type}
+                            {"text": msg, "image": target_image, "type": ac_type}
                         )
                         continue
 
@@ -167,7 +176,7 @@ async def run(config_path: str, config: dict[str, Any]) -> None:
                             loc,
                             display_name,
                             display_units,
-                            image_bytes=image_bytes,
+                            image_bytes=target_image,
                         )
                         wh_queues.setdefault(notif_name, []).append(payload)
                         continue

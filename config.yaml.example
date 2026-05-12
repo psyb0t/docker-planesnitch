@@ -105,9 +105,11 @@ notifications:
     type: telegram
     bot_token: ""
     chat_id: ""
+    # attach_image: false   # skip doc8643 photo, send text only (default: true)
 
   # my_webhook:
   #   type: webhook
   #   url: "https://example.com/hook"
   #   headers:
   #     Authorization: "Bearer xxx"
+  #   attach_image: false   # omit base64 photo from payload (default: true)
