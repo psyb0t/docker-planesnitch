@@ -1,6 +1,15 @@
 """Tests for notify.py."""
 
-from .notify import cluster_messages, format_message, format_webhook_payload
+import asyncio
+from unittest.mock import AsyncMock, MagicMock
+
+from .notify import (
+    TG_CAPTION_MAX_LEN,
+    cluster_messages,
+    format_message,
+    format_webhook_payload,
+    send_telegram_photo,
+)
 
 
 class TestClusterMessages:
@@ -123,9 +132,7 @@ class TestFormatMessage:
             "reason": "icao_csv_match",
             "info": {"Operator": "USAF", "Category": "Military"},
         }
-        msg = format_message(
-            SAMPLE_AIRCRAFT, "Test", match, SAMPLE_LOCATION, "Home"
-        )
+        msg = format_message(SAMPLE_AIRCRAFT, "Test", match, SAMPLE_LOCATION, "Home")
         assert "USAF" in msg
 
     def test_aviation_units(self):
@@ -174,9 +181,7 @@ class TestFormatMessage:
 
     def test_ground_alt_skipped(self):
         ac = {**SAMPLE_AIRCRAFT, "alt_baro": "ground"}
-        msg = format_message(
-            ac, "Test", {"reason": "all"}, SAMPLE_LOCATION, "Home"
-        )
+        msg = format_message(ac, "Test", {"reason": "all"}, SAMPLE_LOCATION, "Home")
         assert "ground" not in msg
 
     def test_desc_preferred_over_type(self):
@@ -190,9 +195,7 @@ class TestFormatMessage:
 
     def test_type_fallback_when_no_desc(self):
         ac = {**SAMPLE_AIRCRAFT, "desc": ""}
-        msg = format_message(
-            ac, "Test", {"reason": "all"}, SAMPLE_LOCATION, "Home"
-        )
+        msg = format_message(ac, "Test", {"reason": "all"}, SAMPLE_LOCATION, "Home")
         assert "C17" in msg
 
 
@@ -207,6 +210,32 @@ class TestFormatWebhookPayload:
         assert p["match"] is match
         assert "units" in p
         assert "aircraft" in p
+        assert p["image_base64"] is None
+
+    def test_image_base64(self):
+        import base64
+
+        raw = b"\xff\xd8\xff\xe0fake-jpeg-bytes"
+        p = format_webhook_payload(
+            SAMPLE_AIRCRAFT,
+            "Test",
+            {"reason": "all"},
+            SAMPLE_LOCATION,
+            "Home",
+            image_bytes=raw,
+        )
+        assert p["image_base64"] == base64.b64encode(raw).decode("ascii")
+
+    def test_image_none_when_no_bytes(self):
+        p = format_webhook_payload(
+            SAMPLE_AIRCRAFT,
+            "Test",
+            {"reason": "all"},
+            SAMPLE_LOCATION,
+            "Home",
+            image_bytes=None,
+        )
+        assert p["image_base64"] is None
 
     def test_aircraft_fields(self):
         p = format_webhook_payload(
@@ -289,3 +318,111 @@ class TestFormatWebhookPayload:
             SAMPLE_AIRCRAFT, "Test", {"reason": "all"}, SAMPLE_LOCATION, "Home"
         )
         assert p["aircraft"]["flight"] == "TEDDY64"
+
+
+def _make_post_session(
+    status: int, body: str = "", raise_exc: bool = False
+) -> MagicMock:
+    """Build a mock aiohttp session whose .post returns an async ctx mgr."""
+    resp = MagicMock()
+    resp.status = status
+    resp.text = AsyncMock(return_value=body)
+    ctx = MagicMock()
+    ctx.__aenter__ = AsyncMock(return_value=resp)
+    ctx.__aexit__ = AsyncMock(return_value=False)
+    session = MagicMock()
+    if raise_exc:
+        session.post = MagicMock(side_effect=Exception("network down"))
+    else:
+        session.post = MagicMock(return_value=ctx)
+    return session
+
+
+class TestSendTelegramPhoto:
+    def test_short_caption_success(self):
+        session = _make_post_session(200)
+        asyncio.run(
+            send_telegram_photo("TOKEN", "CHAT", "short caption", b"jpegbytes", session)
+        )
+        # Exactly one POST: sendPhoto
+        assert session.post.call_count == 1
+        args, kwargs = session.post.call_args
+        assert args[0].endswith("/sendPhoto")
+        assert "data" in kwargs
+
+    def test_long_caption_splits(self):
+        session = _make_post_session(200)
+        long_caption = "x" * (TG_CAPTION_MAX_LEN + 1)
+        asyncio.run(
+            send_telegram_photo("TOKEN", "CHAT", long_caption, b"jpeg", session)
+        )
+        # Two POSTs: sendMessage (text), then sendPhoto (no caption)
+        assert session.post.call_count == 2
+        first_args, first_kwargs = session.post.call_args_list[0]
+        assert first_args[0].endswith("/sendMessage")
+        assert first_kwargs["json"]["text"] == long_caption
+        second_args, _ = session.post.call_args_list[1]
+        assert second_args[0].endswith("/sendPhoto")
+
+    def test_send_photo_fails_falls_back_to_text(self):
+        # sendPhoto returns 400 with short caption -> fallback sendMessage
+        session = _make_post_session(400, body="bad request")
+        asyncio.run(send_telegram_photo("TOKEN", "CHAT", "short", b"jpeg", session))
+        # First call is sendPhoto, second is sendMessage fallback
+        assert session.post.call_count == 2
+        first_args, _ = session.post.call_args_list[0]
+        second_args, second_kwargs = session.post.call_args_list[1]
+        assert first_args[0].endswith("/sendPhoto")
+        assert second_args[0].endswith("/sendMessage")
+        assert second_kwargs["json"]["text"] == "short"
+
+    def test_long_caption_photo_fails_does_not_resend_text(self):
+        # When caption was split, text already delivered; a failing sendPhoto
+        # must NOT re-send the text.
+        session = _make_post_session(400, body="bad request")
+        long_caption = "y" * (TG_CAPTION_MAX_LEN + 5)
+        asyncio.run(
+            send_telegram_photo("TOKEN", "CHAT", long_caption, b"jpeg", session)
+        )
+        # Exactly 2 calls: original sendMessage + failed sendPhoto. No third call.
+        assert session.post.call_count == 2
+        calls = [c.args[0] for c in session.post.call_args_list]
+        assert calls[0].endswith("/sendMessage")
+        assert calls[1].endswith("/sendPhoto")
+
+    def test_network_exception_short_caption_falls_back(self):
+        # session.post itself blows up on sendPhoto -> fall back to sendMessage.
+        # We need sendPhoto to throw but sendMessage to succeed, so build a
+        # session whose .post raises only on the first call.
+        ok_resp = MagicMock()
+        ok_resp.status = 200
+        ok_resp.text = AsyncMock(return_value="")
+        ok_ctx = MagicMock()
+        ok_ctx.__aenter__ = AsyncMock(return_value=ok_resp)
+        ok_ctx.__aexit__ = AsyncMock(return_value=False)
+        session = MagicMock()
+        session.post = MagicMock(side_effect=[Exception("boom"), ok_ctx])
+        asyncio.run(send_telegram_photo("TOKEN", "CHAT", "short", b"jpeg", session))
+        assert session.post.call_count == 2
+        first_args, _ = session.post.call_args_list[0]
+        second_args, second_kwargs = session.post.call_args_list[1]
+        assert first_args[0].endswith("/sendPhoto")
+        assert second_args[0].endswith("/sendMessage")
+        assert second_kwargs["json"]["text"] == "short"
+
+    def test_network_exception_long_caption_no_resend(self):
+        # First call (sendMessage for split text) succeeds, second (sendPhoto)
+        # blows up. No third call must happen.
+        ok_resp = MagicMock()
+        ok_resp.status = 200
+        ok_resp.text = AsyncMock(return_value="")
+        ok_ctx = MagicMock()
+        ok_ctx.__aenter__ = AsyncMock(return_value=ok_resp)
+        ok_ctx.__aexit__ = AsyncMock(return_value=False)
+        session = MagicMock()
+        session.post = MagicMock(side_effect=[ok_ctx, Exception("boom")])
+        long_caption = "z" * (TG_CAPTION_MAX_LEN + 10)
+        asyncio.run(
+            send_telegram_photo("TOKEN", "CHAT", long_caption, b"jpeg", session)
+        )
+        assert session.post.call_count == 2

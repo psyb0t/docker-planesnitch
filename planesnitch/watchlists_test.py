@@ -1,7 +1,5 @@
 """Tests for watchlists.py."""
 
-import pytest
-
 from .watchlists import matches_watchlist, parse_alert_csv
 
 
@@ -106,6 +104,47 @@ class TestMatchesWatchlist:
     def test_icao_no_position(self):
         ac = {"hex": "abc123"}
         wl = {"type": "icao", "values": {"abc123"}}
+        assert matches_watchlist(ac, wl, self.LOC) is None
+
+    def test_icao_type_match(self):
+        ac = {"hex": "abc123", "lat": 38.88, "lon": -77.06, "t": "C17"}
+        wl = {"type": "icao_type", "values": {"C17", "B738"}}
+        result = matches_watchlist(ac, wl, self.LOC)
+        assert result is not None
+        assert result["reason"] == "icao_type_match"
+        assert result["type"] == "C17"
+        assert "distance_km" in result
+
+    def test_icao_type_no_match(self):
+        ac = {"hex": "abc123", "lat": 38.88, "lon": -77.06, "t": "A320"}
+        wl = {"type": "icao_type", "values": {"C17", "B738"}}
+        assert matches_watchlist(ac, wl, self.LOC) is None
+
+    def test_icao_type_case_insensitive(self):
+        ac = {"hex": "abc123", "lat": 38.88, "lon": -77.06, "t": "c17"}
+        wl = {"type": "icao_type", "values": {"C17"}}
+        result = matches_watchlist(ac, wl, self.LOC)
+        assert result is not None
+        assert result["type"] == "C17"
+
+    def test_icao_type_missing_field(self):
+        ac = {"hex": "abc123", "lat": 38.88, "lon": -77.06}
+        wl = {"type": "icao_type", "values": {"C17"}}
+        assert matches_watchlist(ac, wl, self.LOC) is None
+
+    def test_icao_type_empty_field(self):
+        ac = {"hex": "abc123", "lat": 38.88, "lon": -77.06, "t": ""}
+        wl = {"type": "icao_type", "values": {"C17"}}
+        assert matches_watchlist(ac, wl, self.LOC) is None
+
+    def test_icao_type_none_field(self):
+        ac = {"hex": "abc123", "lat": 38.88, "lon": -77.06, "t": None}
+        wl = {"type": "icao_type", "values": {"C17"}}
+        assert matches_watchlist(ac, wl, self.LOC) is None
+
+    def test_icao_type_too_far(self):
+        ac = {"hex": "abc123", "lat": 50.0, "lon": 0.0, "t": "C17"}
+        wl = {"type": "icao_type", "values": {"C17"}}
         assert matches_watchlist(ac, wl, self.LOC) is None
 
     def test_icao_csv_match(self):

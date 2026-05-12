@@ -1,5 +1,6 @@
 """Notification formatting and sending."""
 
+import base64
 import logging
 from typing import Any
 
@@ -20,6 +21,7 @@ from .geo import get_distance_km
 log = logging.getLogger("planesnitch")
 
 TG_MAX_LEN = 4096
+TG_CAPTION_MAX_LEN = 1024
 TG_SEPARATOR = "\n\n"
 
 
@@ -144,16 +146,19 @@ def format_webhook_payload(
     location: dict[str, Any],
     location_name: str,
     display_units: str = "aviation",
+    image_bytes: bytes | None = None,
 ) -> dict[str, Any]:
     dist = get_distance_km(aircraft, location)
     alt = aircraft.get("alt_baro")
     gs = aircraft.get("gs")
     labels = unit_labels(display_units)
+    image_b64 = base64.b64encode(image_bytes).decode("ascii") if image_bytes else None
     return {
         "alert": alert_name,
         "location": location_name,
         "match": match_info,
         "units": labels,
+        "image_base64": image_b64,
         "aircraft": {
             "hex": aircraft.get("hex"),
             "flight": (aircraft.get("flight") or "").strip(),
@@ -198,6 +203,73 @@ async def send_telegram(
                 log.warning("telegram send failed: %s %s", resp.status, body)
     except Exception:
         log.warning("telegram send error", exc_info=True)
+
+
+async def send_telegram_photo(
+    token: str,
+    chat_id: str,
+    caption: str,
+    image_bytes: bytes,
+    session: aiohttp.ClientSession,
+    filename: str = "aircraft.jpg",
+) -> None:
+    """Send a photo with optional caption.
+
+    If caption exceeds Telegram's caption limit, sends the text as a separate
+    message first, then the photo without caption. If sendPhoto then fails,
+    no fallback fires for the long-caption case — the text was already
+    delivered, only the photo is lost.
+
+    For short captions: a sendPhoto failure falls back to sendMessage so the
+    user still receives the alert text.
+    """
+    api = f"https://api.telegram.org/bot{token}"
+
+    photo_caption = caption
+    text_already_sent = False
+    if len(caption) > TG_CAPTION_MAX_LEN:
+        log.debug(
+            "telegram caption too long (%d > %d), splitting text+photo",
+            len(caption),
+            TG_CAPTION_MAX_LEN,
+        )
+        await send_telegram(token, chat_id, caption, session)
+        photo_caption = ""
+        text_already_sent = True
+
+    form = aiohttp.FormData()
+    form.add_field("chat_id", chat_id)
+    if photo_caption:
+        form.add_field("caption", photo_caption)
+    form.add_field(
+        "photo",
+        image_bytes,
+        filename=filename,
+        content_type="image/jpeg",
+    )
+
+    log.debug(
+        "telegram sendPhoto: chat_id=%s caption_len=%d photo_bytes=%d",
+        chat_id,
+        len(photo_caption),
+        len(image_bytes),
+    )
+    try:
+        async with session.post(
+            f"{api}/sendPhoto",
+            data=form,
+            timeout=aiohttp.ClientTimeout(total=30),
+        ) as resp:
+            log.debug("telegram sendPhoto response: %s", resp.status)
+            if resp.status != 200:
+                body = await resp.text()
+                log.warning("telegram sendPhoto failed: %s %s", resp.status, body)
+                if not text_already_sent:
+                    await send_telegram(token, chat_id, caption, session)
+    except Exception:
+        log.warning("telegram sendPhoto error", exc_info=True)
+        if not text_already_sent:
+            await send_telegram(token, chat_id, caption, session)
 
 
 async def send_webhook(

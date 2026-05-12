@@ -51,6 +51,13 @@ docker run \
   -v ./config.yaml:/app/config.yaml:ro \
   -v ./csv:/csv:ro \
   psyb0t/planesnitch
+
+# full setup with persistent aircraft-type image cache
+docker run \
+  -v ./config.yaml:/app/config.yaml:ro \
+  -v ./csv:/csv:ro \
+  -v ./images:/images \
+  psyb0t/planesnitch
 ```
 
 ```
@@ -125,13 +132,14 @@ sources:
 
 Tell the snitch what to look for. All types respect the location's radius — aircraft outside the radius are ignored regardless of type.
 
-| Type        | Matches On              | Source                                                                                                |
-| ----------- | ----------------------- | ----------------------------------------------------------------------------------------------------- |
-| `all`       | Every aircraft          | Everything within the location's radius                                                               |
-| `squawk`    | Transponder squawk code | Inline list                                                                                           |
-| `icao`      | ICAO hex address        | Inline list                                                                                           |
-| `icao_csv`  | ICAO hex from CSV       | Local file in `csv/` dir ([plane-alert-db](https://github.com/sdr-enthusiasts/plane-alert-db) format) |
-| `proximity` | Altitude filter         | Location radius + altitude limits                                                                     |
+| Type        | Matches On                                                                                              | Source                                                                                                |
+| ----------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `all`       | Every aircraft                                                                                          | Everything within the location's radius                                                               |
+| `squawk`    | Transponder squawk code                                                                                 | Inline list                                                                                           |
+| `icao`      | ICAO hex address                                                                                        | Inline list                                                                                           |
+| `icao_type` | ICAO type designator ([doc 8643](https://www.icao.int/publications/DOC8643/Pages/Search.aspx)) e.g. `C17`, `B738` | Inline list                                                                                           |
+| `icao_csv`  | ICAO hex from CSV                                                                                       | Local file in `csv/` dir ([plane-alert-db](https://github.com/sdr-enthusiasts/plane-alert-db) format) |
+| `proximity` | Altitude filter                                                                                         | Location radius + altitude limits                                                                     |
 
 ```yaml
 watchlists:
@@ -159,6 +167,11 @@ watchlists:
   my_planes:
     type: icao
     values: ["4ca123", "a12345"]
+
+  # Stalk by aircraft type — any A400M, Rafale, or Alpha Jet
+  cool_jets:
+    type: icao_type
+    values: ["A400", "RFAL", "AJET"]
 
   # Every single aircraft in range
   everything:
@@ -212,6 +225,13 @@ notifications:
     chat_id: "-100987654321"
 ```
 
+When an aircraft has an ICAO type designator (field `t`), planesnitch fetches the matching aircraft image from [doc8643.com](https://doc8643.com) and:
+
+- attaches it to the Telegram message as a photo (caption = the alert text)
+- embeds the JPEG bytes (base64) in webhook payloads as `image_base64`
+
+Images are cached in `images/` (mount `-v ./images:/images` to persist across restarts). Misses are recorded as `.notfound` markers so types without images aren't re-fetched. The cache survives indefinitely — delete the dir to force a refresh.
+
 **Webhook** — POSTs a JSON array of alert objects per poll cycle:
 
 ```yaml
@@ -251,6 +271,7 @@ Webhook payload schema — always a JSON array, even for a single alert:
       "distance": "nm",
       "speed": "kts"
     },
+    "image_base64": "/9j/4AAQSkZJRgABAQ...",  // null if no image cached
     "aircraft": {
       "hex": "ae07e1",
       "flight": "TEDDY64",
@@ -276,11 +297,12 @@ The `match` object varies by watchlist type:
 
 | Watchlist Type | Match Fields                                                                         |
 | -------------- | ------------------------------------------------------------------------------------ |
-| `squawk`       | `{"reason": "squawk", "watchlist": "...", "squawk": "7700"}`                         |
-| `icao`         | `{"reason": "icao_match", "watchlist": "..."}`                                       |
-| `icao_csv`     | `{"reason": "icao_csv_match", "watchlist": "...", "info": {"Operator": "...", ...}}` |
-| `all`          | `{"reason": "all", "watchlist": "..."}`                                              |
-| `proximity`    | `{"reason": "proximity", "watchlist": "...", "distance_km": 12.3}`                   |
+| `squawk`       | `{"reason": "squawk", "watchlist": "...", "squawk": "7700", "distance_km": 12.3}`            |
+| `icao`         | `{"reason": "icao_match", "watchlist": "...", "distance_km": 12.3}`                          |
+| `icao_type`    | `{"reason": "icao_type_match", "watchlist": "...", "type": "C17", "distance_km": 12.3}`      |
+| `icao_csv`     | `{"reason": "icao_csv_match", "watchlist": "...", "info": {"Operator": "..."}, "distance_km": 12.3}` |
+| `all`          | `{"reason": "all", "watchlist": "...", "distance_km": 12.3}`                                 |
+| `proximity`    | `{"reason": "proximity", "watchlist": "...", "distance_km": 12.3}`                           |
 
 ### What the alerts look like
 
@@ -358,9 +380,11 @@ Re-download whenever you want fresh data. Or write your own CSV — just needs a
 │   ├── geo.py            # distance calculations
 │   ├── watchlists.py     # watchlist loading + matching
 │   ├── alerts.py         # alert checking + cooldowns
+│   ├── images.py         # doc8643 aircraft type image caching
 │   └── notify.py         # telegram + webhook formatting + sending
 ├── config.yaml.example   # example config — copy to config.yaml and fill in your shit
 ├── csv/                  # CSV watchlists go here, mounted to /csv
+├── images/               # cached doc8643 type images, mounted to /images
 ├── run.sh                # build + run in docker
 ├── requirements.txt
 ├── Dockerfile
@@ -373,9 +397,10 @@ Environment variables:
 
 | Variable              | Default       | Description                       |
 | --------------------- | ------------- | --------------------------------- |
-| `LOG_LEVEL`           | `INFO`        | Set to `DEBUG` for verbose output |
-| `PLANESNITCH_CONFIG`  | `config.yaml` | Path to config file               |
-| `PLANESNITCH_CSV_DIR` | `/csv`        | Path to CSV watchlist files       |
+| `LOG_LEVEL`              | `INFO`        | Set to `DEBUG` for verbose output                   |
+| `PLANESNITCH_CONFIG`     | `config.yaml` | Path to config file                                 |
+| `PLANESNITCH_CSV_DIR`    | `/csv`        | Path to CSV watchlist files                         |
+| `PLANESNITCH_IMAGES_DIR` | `/images`     | Path to cached doc8643 aircraft-type images          |
 
 A health endpoint runs on port `8080`. The Docker image includes a built-in healthcheck against it.
 

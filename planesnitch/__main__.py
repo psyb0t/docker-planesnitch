@@ -12,9 +12,17 @@ import aiohttp
 
 from .alerts import check_alerts
 from .config import load_config
-from .notify import (TG_MAX_LEN, TG_SEPARATOR, cluster_messages,
-                     format_message, format_webhook_payload, send_telegram,
-                     send_webhook)
+from .images import IMAGES_DIR, get_type_image, read_image_bytes
+from .notify import (
+    TG_MAX_LEN,
+    TG_SEPARATOR,
+    cluster_messages,
+    format_message,
+    format_webhook_payload,
+    send_telegram,
+    send_telegram_photo,
+    send_webhook,
+)
 from .sources import fetch_aircraft
 from .watchlists import load_watchlists
 
@@ -106,8 +114,10 @@ async def run(config_path: str, config: dict[str, Any]) -> None:
                 cooldowns,
             )
 
-            tg_queues: dict[str, list[str]] = {}
+            tg_queues: dict[str, list[dict[str, Any]]] = {}
             wh_queues: dict[str, list[dict[str, Any]]] = {}
+
+            image_cache: dict[str, bytes | None] = {}
 
             for ac, rule, match_info, loc_key, loc in triggered:
                 display_name = loc.get("name", loc_key)
@@ -118,6 +128,16 @@ async def run(config_path: str, config: dict[str, Any]) -> None:
                     ac.get("hex"),
                     (ac.get("flight") or "").strip(),
                 )
+
+                ac_type = (ac.get("t") or "").strip().upper()
+                image_bytes: bytes | None = None
+                if ac_type:
+                    if ac_type in image_cache:
+                        image_bytes = image_cache[ac_type]
+                    else:
+                        img_path = await get_type_image(ac_type, IMAGES_DIR, session)
+                        image_bytes = read_image_bytes(img_path) if img_path else None
+                        image_cache[ac_type] = image_bytes
 
                 for notif_name in rule.get("notify", []):
                     notif = notifications.get(notif_name)
@@ -134,7 +154,9 @@ async def run(config_path: str, config: dict[str, Any]) -> None:
                             display_name,
                             display_units,
                         )
-                        tg_queues.setdefault(notif_name, []).append(msg)
+                        tg_queues.setdefault(notif_name, []).append(
+                            {"text": msg, "image": image_bytes, "type": ac_type}
+                        )
                         continue
 
                     if notif.get("type") == "webhook":
@@ -145,13 +167,14 @@ async def run(config_path: str, config: dict[str, Any]) -> None:
                             loc,
                             display_name,
                             display_units,
+                            image_bytes=image_bytes,
                         )
                         wh_queues.setdefault(notif_name, []).append(payload)
                         continue
 
                     log.warning("unknown notification type: %s", notif.get("type"))
 
-            for notif_name, messages in tg_queues.items():
+            for notif_name, items in tg_queues.items():
                 notif = notifications[notif_name]
                 token = notif.get("bot_token", "")
                 chat_id = notif.get("chat_id", "")
@@ -161,15 +184,31 @@ async def run(config_path: str, config: dict[str, Any]) -> None:
                         notif_name,
                     )
                     continue
-                batches = cluster_messages(messages, TG_MAX_LEN, TG_SEPARATOR)
-                log.debug(
-                    "telegram %s: %d alerts clustered into %d messages",
-                    notif_name,
-                    len(messages),
-                    len(batches),
-                )
-                for batch in batches:
-                    await send_telegram(token, chat_id, batch, session)
+
+                photo_items = [i for i in items if i["image"]]
+                text_only = [i["text"] for i in items if not i["image"]]
+
+                for item in photo_items:
+                    await send_telegram_photo(
+                        token,
+                        chat_id,
+                        item["text"],
+                        item["image"],
+                        session,
+                        filename=f"{item['type'] or 'aircraft'}.jpg",
+                    )
+
+                if text_only:
+                    batches = cluster_messages(text_only, TG_MAX_LEN, TG_SEPARATOR)
+                    log.debug(
+                        "telegram %s: %d text alerts in %d batches, %d photos",
+                        notif_name,
+                        len(text_only),
+                        len(batches),
+                        len(photo_items),
+                    )
+                    for batch in batches:
+                        await send_telegram(token, chat_id, batch, session)
 
             for notif_name, payloads in wh_queues.items():
                 notif = notifications[notif_name]

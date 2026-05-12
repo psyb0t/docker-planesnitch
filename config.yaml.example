@@ -66,6 +66,10 @@ watchlists:
   #     - "4ca123"
   #     - "a12345"
 
+  # cool_jets:
+  #   type: icao_type
+  #   values: ["A400", "RFAL", "AJET"]  # ICAO type designators (doc 8643)
+
   # everything:
   #   type: all
 

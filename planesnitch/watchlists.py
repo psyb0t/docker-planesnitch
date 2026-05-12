@@ -71,6 +71,12 @@ def load_watchlists(
             loaded[name] = {"type": "icao", "values": values}
             continue
 
+        if wl_type == "icao_type":
+            values = set(str(v).upper() for v in wl.get("values", []))
+            log.debug("watchlist %s: icao_type values %s", name, values)
+            loaded[name] = {"type": "icao_type", "values": values}
+            continue
+
         if wl_type == "all":
             log.debug("watchlist %s: matches all aircraft", name)
             loaded[name] = {"type": "all"}
@@ -109,7 +115,7 @@ def matches_watchlist(
     dist = get_distance_km(aircraft, location)
     if dist is None:
         return None
-    radius_km = resolve_distance_km(location, "radius", default=150)
+    radius_km = resolve_distance_km(location, "radius", default=150) or 150
     if dist > radius_km:
         return None
 
@@ -127,6 +133,13 @@ def matches_watchlist(
             return None
         log.debug("icao match: %s dist=%.1fkm", hex_code, dist)
         return {**base, "reason": "icao_match"}
+
+    if wl_type == "icao_type":
+        ac_type = (aircraft.get("t") or "").upper()
+        if not ac_type or ac_type not in watchlist["values"]:
+            return None
+        log.debug("icao_type match: %s type=%s dist=%.1fkm", hex_code, ac_type, dist)
+        return {**base, "reason": "icao_type_match", "type": ac_type}
 
     if wl_type == "icao_csv":
         db = watchlist.get("db", {})

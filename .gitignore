@@ -10,3 +10,5 @@ run.sh
 git-update.sh
 CLAUDE.md
 research_files
+images/*
+!images/.gitkeep
