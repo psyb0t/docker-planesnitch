@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.0] - 2026-07-25
+
+- **Agent skill + ClawHub publish.** Added `.agents/skills/planesnitch/`
+  (SKILL.md + references/setup.md) documenting the config schema, watchlist
+  filters, and Telegram/webhook alert sinks. The pipeline now publishes the
+  skill to ClawHub on tag pushes.
+
 ## [1.6.0] - 2026-05-12
 
 - `icao_type` watchlist: match aircraft by ICAO doc 8643 type designator
