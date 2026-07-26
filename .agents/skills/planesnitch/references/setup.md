@@ -202,6 +202,8 @@ alerts:
 
 ### Notifications
 
+**External transmission.** Every alert sends the matched aircraft's coordinates (`lat`/`lon`), squawk, registration, and other tracking metadata — plus a cached doc8643 image when `attach_image` is left at its default `true` — to the notification targets below. `telegram` targets deliver via `api.telegram.org`; `webhook` targets `POST` a JSON payload (including `image_base64` when image attachment is on) to whatever `url` you configure. That data leaves your host to those third parties on every match. Only configure `bot_token`/`chat_id` pairs and webhook `url`s you control or explicitly trust — see [SKILL.md Security & safety](../SKILL.md#security--safety).
+
 **Telegram:**
 
 ```yaml

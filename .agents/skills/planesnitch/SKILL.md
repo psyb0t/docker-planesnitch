@@ -22,6 +22,7 @@ For the full config schema, env vars, Docker run/compose, and Telegram bot setup
 planesnitch sends data outbound on every poll cycle — know what you're pointing it at:
 
 - **Location coordinates + radius leave your machine** on every poll, sent to whichever ADS-B source(s) you configure (public APIs by default — `adsb.lol`, `adsb.fi`, `airplanes.live`, `adsb.one`). If that's a concern, run your own `ultrafeeder` and point `sources` at it instead of the public endpoints.
+- **External transmission on every alert, not just polling.** Every alert fired through a `telegram` notification target sends the matched aircraft's coordinates (`lat`/`lon`), squawk, registration, and (if `attach_image` is left at its default `true`) a doc8643 image to `api.telegram.org`. Every alert fired through a `webhook` notification target `POST`s the same data — plus `image_base64` when `attach_image` is on — to whatever `url` you set. In both cases the location's identity and the aircraft's tracked position leave your host to that third party on every match. Point `notify:` only at Telegram bots/chats and webhook `url`s you run or explicitly trust; treat the notification target list as part of your threat model, not just the ADS-B `sources`.
 - **`config.yaml` holds a live Telegram bot token and/or webhook URL + auth headers in plaintext.** Treat it like a secret — don't commit it, don't paste it into chat, mount it read-only (`:ro`).
 - **Alert content (aircraft position, squawk, registration, cached image) goes to every notification target you configure.** Only point `notify:` at Telegram chats and webhook endpoints you control. A webhook is an arbitrary outbound POST — vet the URL before adding it.
 - **No inbound exposure by default** beyond the health endpoint (`:8080`) — planesnitch doesn't listen for anything else. It's a poll-and-push loop, not a server other things talk to.
@@ -55,7 +56,7 @@ Everything lives in one `config.yaml`. Five sections: locations, sources, watchl
 
 **`alerts`** — wires watchlists to notification targets. Optional `locations` filter (omit = all locations checked). `cooldown` (durations: `5m`, `1h30m`, `90s`, or plain seconds) stops the same aircraft from re-triggering the alert for a while.
 
-**`notifications`** — `telegram` (`bot_token` + `chat_id`) or `webhook` (`url` + optional `headers`). Both support `attach_image: false` to skip the doc8643 aircraft-type photo (default `true`) — Telegram gets it as a photo attachment, webhooks get it as `image_base64` in the JSON payload.
+**`notifications`** — `telegram` (`bot_token` + `chat_id`) or `webhook` (`url` + optional `headers`). Both support `attach_image: false` to skip the doc8643 aircraft-type photo (default `true`) — Telegram gets it as a photo attachment, webhooks get it as `image_base64` in the JSON payload. **Every alert sends location coordinates and aircraft tracking data off-host** — `telegram` targets to `api.telegram.org`, `webhook` targets to whatever `url` you set (see Security & safety above). Only add notification targets pointing at Telegram bots/chats and webhook endpoints you control or trust.
 
 ### Example config
 

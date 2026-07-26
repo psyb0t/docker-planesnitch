@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.1] - 2026-07-26
+
+- **Agent skill docs hardened.** Extended the Security & safety section and
+  the notifications config docs in `.agents/skills/planesnitch/` with
+  explicit warnings that alert delivery (Telegram + webhook) transmits
+  location coordinates and aircraft tracking data off-host to whatever
+  bot/chat or webhook URL you configure. No behavior change — docs only.
+
 ## [1.8.0] - 2026-07-25
 
 - **Agent skill + ClawHub publish.** Added `.agents/skills/planesnitch/`
