@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.8.3] - 2026-07-27
+
+- **CI status badge.** Added a GitHub Actions CI status badge to the README.
+
 ## [1.8.2] - 2026-07-27
 
 - **README badges.** Added self-hosted version and license badges (rendered as
