@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.2] - 2026-07-27
+
+- **README badges.** Added self-hosted version and license badges (rendered as
+  SVGs on the `badges` branch by the `create-badges` CI job, no third-party
+  render service) plus a Docker Hub pulls badge. A `badges` job was wired into
+  `pipeline.yml`.
+
 ## [1.8.1] - 2026-07-26
 
 - **Agent skill docs hardened.** Extended the Security & safety section and

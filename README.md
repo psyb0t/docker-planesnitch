@@ -1,5 +1,9 @@
 # 🛩️ planesnitch
 
+[![version](https://raw.githubusercontent.com/psyb0t/docker-planesnitch/badges/version.svg)](https://github.com/psyb0t/docker-planesnitch/releases)
+[![license](https://raw.githubusercontent.com/psyb0t/docker-planesnitch/badges/license.svg)](LICENSE)
+[![Docker Pulls](https://img.shields.io/docker/pulls/psyb0t/planesnitch?style=flat-square)](https://hub.docker.com/r/psyb0t/planesnitch)
+
 Snitches on every interesting aircraft that dares fly near your locations — military jets, government spooks, emergency squawks, sketchy low-flyers, or whatever the fuck you tell it to watch for. Monitor multiple locations at once — your house, your office, grandma's house, Area 51, whatever. Rats them out straight to your Telegram or webhook like a paranoid neighbor with radar.
 
 No SDR required. No antenna. No hardware. Just an internet connection and a config file. Alerts via Telegram and/or webhooks. Works anywhere on the fuckin planet — and for as many places as you want.
