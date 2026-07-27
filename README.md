@@ -22,6 +22,7 @@ No SDR required. No antenna. No hardware. Just an internet connection and a conf
   - [What the alerts look like](#what-the-alerts-look-like)
 - [🤖 Telegram Setup](#-telegram-setup)
 - [🗃️ Plane-Alert-DB Lists](#️-plane-alert-db-lists)
+- [Agent integrations](#agent-integrations)
 - [📁 Project Structure](#-project-structure)
 - [📝 License](#-license)
 
@@ -384,6 +385,33 @@ curl -sLo csv/plane-alert-db.csv  $BASE/plane-alert-db.csv
 `plane-alert-db.csv` contains everything (mil + gov + pol + civ + pia) in one file. If you just want to watch all 15,000+ aircraft, use that one and skip the rest.
 
 Re-download whenever you want fresh data. Or write your own CSV — just needs an ICAO hex column first.
+
+## Agent integrations
+
+The [skill](.agents/skills/planesnitch) works in any agent that reads `.agents/skills/`, and installs natively in the clients below.
+
+### Claude Code
+
+```bash
+claude plugin marketplace add psyb0t/agents
+claude plugin install planesnitch@psyb0t
+```
+
+### Codex
+
+```bash
+codex plugin marketplace add psyb0t/agents
+```
+
+Codex also picks the skill up automatically in any repo containing `.agents/skills/`, and invokes it as `$planesnitch`.
+
+### OpenClaw
+
+The skill is published to ClawHub on every release:
+
+```bash
+openclaw skills install @psyb0t/planesnitch
+```
 
 ## 📁 Project Structure
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.8.4] - 2026-07-27
+
+- **Claude Code + Codex plugin manifests.** Added
+  `.agents/.claude-plugin/plugin.json` and `.agents/.codex-plugin/plugin.json`
+  so the existing `.agents/skills/planesnitch/` skill installs natively as a
+  plugin in both clients, rooted at `.agents/` with zero extra config.
+- **README "Agent integrations" section.** Documents the
+  `claude plugin marketplace add` / `claude plugin install` and
+  `codex plugin marketplace add` commands, plus the OpenClaw ClawHub skill
+  install line, with a matching Table of Contents entry.
+
 ## [1.8.3] - 2026-07-27
 
 - **CI status badge.** Added a GitHub Actions CI status badge to the README.
