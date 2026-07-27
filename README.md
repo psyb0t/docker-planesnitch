@@ -401,9 +401,10 @@ claude plugin install planesnitch@psyb0t
 
 ```bash
 codex plugin marketplace add psyb0t/agents
+codex plugin add planesnitch@psyb0t
 ```
 
-Codex also picks the skill up automatically in any repo containing `.agents/skills/`, and invokes it as `$planesnitch`.
+Installed via the marketplace, invoke it as `$planesnitch:planesnitch`. Codex also picks the skill up automatically with no install in any repo containing `.agents/skills/`, where it invokes as plain `$planesnitch`.
 
 ### OpenClaw
 

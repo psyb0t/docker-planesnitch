@@ -1,6 +1,6 @@
 {
   "name": "planesnitch",
-  "version": "1.8.4",
+  "version": "1.8.5",
   "description": "Self-hosted aircraft monitor — alerts on military/government/police aircraft, emergency squawks, and custom ICAO watchlists near your locations via Telegram and webhooks, no SDR or hardware required.",
   "author": { "name": "psyb0t", "url": "https://github.com/psyb0t" },
   "homepage": "https://github.com/psyb0t/docker-planesnitch",

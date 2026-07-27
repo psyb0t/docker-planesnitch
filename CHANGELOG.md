@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.8.5] - 2026-07-27
+
+- **Codex install command in README.** The Codex subsection of "Agent
+  integrations" was missing the actual install step after the marketplace
+  add — it now includes `codex plugin add planesnitch@psyb0t`.
+- **Invocation forms clarified.** The skill invokes as
+  `$planesnitch:planesnitch` when installed via the marketplace, and as
+  plain `$planesnitch` when Codex picks it up automatically from a repo's
+  own `.agents/skills/` directory — these are two different paths and the
+  README now documents both.
+
 ## [1.8.4] - 2026-07-27
 
 - **Claude Code + Codex plugin manifests.** Added
