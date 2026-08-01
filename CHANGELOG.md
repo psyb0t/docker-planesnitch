@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.8.6] - 2026-08-01
+
+CI plumbing only. No code in this repo changed — every commit in this release
+touches `.github/workflows/`.
+
+- **Pipeline split.** Building and publishing stay in `pipeline.yml`;
+  everything that leaves the host now lives beside it in
+  `mirror-and-archive.yml`.
+- **Codeberg mirror.** The repo is mirrored to Codeberg as well as GitLab.
+- **Archiving.** It is archived to the Wayback Machine, Software Heritage and
+  archive.org.
+- **Mirror issues pulled back.** Issues opened on either mirror are copied back
+  to GitHub every six hours, and closed here when the original closes.
+- **Mirror pull requests disabled.** The mirrors are force-pushed from GitHub,
+  so anything merged there would be destroyed by the next sync. Issues and
+  forking stay enabled.
+
 ## [1.8.5] - 2026-07-27
 
 - **Codex install command in README.** The Codex subsection of "Agent
