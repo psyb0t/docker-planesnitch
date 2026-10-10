@@ -388,7 +388,7 @@ Re-download whenever you want fresh data. Or write your own CSV — just needs a
 
 ## Agent integrations
 
-The [skill](.agents/skills/planesnitch) works in any agent that reads `.agents/skills/`, and installs natively in the clients below.
+The [skill](.agents/skills/planesnitch) works in any agent that reads `.agents/skills/` (such as [peen](https://github.com/psyb0t/peen)), and installs natively in the clients below.
 
 ### Claude Code
 
