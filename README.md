@@ -4,6 +4,7 @@
 [![version](https://raw.githubusercontent.com/psyb0t/docker-planesnitch/badges/version.svg)](https://github.com/psyb0t/docker-planesnitch/releases)
 [![license](https://raw.githubusercontent.com/psyb0t/docker-planesnitch/badges/license.svg)](LICENSE)
 [![Docker Pulls](https://img.shields.io/docker/pulls/psyb0t/planesnitch?style=flat-square)](https://hub.docker.com/r/psyb0t/planesnitch)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/psyb0t/docker-planesnitch)
 
 Snitches on every interesting aircraft that dares fly near your locations — military jets, government spooks, emergency squawks, sketchy low-flyers, or whatever the fuck you tell it to watch for. Monitor multiple locations at once — your house, your office, grandma's house, Area 51, whatever. Rats them out straight to your Telegram or webhook like a paranoid neighbor with radar.
 
