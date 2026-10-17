@@ -12,3 +12,6 @@ CLAUDE.md
 research_files
 images/*
 !images/.gitkeep
+
+# Review receipt for the local release script.
+git-update.sh.debot
