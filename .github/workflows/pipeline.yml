@@ -1,11 +1,12 @@
 name: pipeline
 
-# Pushes to main run lint and tests, then publish :latest and :sha-<commit>.
+# Every branch push runs lint and tests; main also publishes :latest and
+# :sha-<commit>.
 # A v* tag waits for that commit's main run to succeed, then promotes the same
 # image digest to the release tag without rebuilding or rerunning checks.
 on:
   push:
-    branches: [main]
+    branches: ["**"]
     tags: ["v*"]
 
 permissions: {}

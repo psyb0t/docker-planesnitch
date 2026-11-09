@@ -48,9 +48,9 @@ docker run --rm \
 
 ## Release pipeline
 
-The [pipeline](https://github.com/psyb0t/docker-planesnitch/blob/main/.github/workflows/pipeline.yml) runs on pushes to `main` and on `v*` tags:
+The [pipeline](https://github.com/psyb0t/docker-planesnitch/blob/main/.github/workflows/pipeline.yml) runs on pushes to any branch and on `v*` tags:
 
-- A `main` push runs `make lint` and `make test`, then builds the image for `linux/amd64` and `linux/arm64`, scans it, and pushes `:latest` and `:sha-<commit>`.
+- Every branch push runs `make lint` and `make test`. On `main` it then builds the image for `linux/amd64` and `linux/arm64`, scans it, and pushes `:latest` and `:sha-<commit>`.
 - A tag waits for that commit's `main` run to succeed, then points `:vX.Y.Z` at the already-built `:sha-<commit>` image without rebuilding. It fails if the `main` run failed, never appeared or timed out.
 - After the image is promoted, a separate job creates the GitHub release from the annotated tag notes, and then the skill is published to ClawHub.
 
