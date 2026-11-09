@@ -15,6 +15,7 @@ jobs:
     if: "!startsWith(github.ref, 'refs/tags/')"
     permissions:
       contents: read
+      security-events: write # the called workflow requests it for SARIF uploads
     uses: psyb0t/reusable-github-workflows/.github/workflows/code-workflow.yml@master
     with:
       lint_command: "make lint" # ruff + mypy in the test image

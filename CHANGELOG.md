@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.9.1], 2026-11-09
+
+- Fixes the pipeline so v1.9.0's changes actually ship. The `code` job did not grant `security-events: write`, which the shared code workflow requests, so GitHub refused to start the v1.9.0 runs and no v1.9.0 image or release was published. Everything listed under 1.9.0 below arrives with this release.
+
 ## [1.9.0], 2026-11-09
 
 - **Config errors no longer kill a running instance.** planesnitch re-reads `config.yaml` every poll, but most validation errors in an edited file used to stop the process instead of keeping the last good config. Now any invalid edit logs `config reload failed, keeping current: <reason>` and the poll goes on.
