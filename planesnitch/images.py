@@ -32,6 +32,15 @@ def _notfound_path(images_dir: str, ac_type: str) -> str:
     return os.path.join(images_dir, f"{ac_type}{NOTFOUND_SUFFIX}")
 
 
+def _write_file(path: str, data: bytes) -> None:
+    """Write through a temporary file so a reader never sees a partial file."""
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "wb") as f:
+        f.write(data)
+    os.replace(tmp, path)
+
+
 async def get_type_image(
     ac_type: str,
     images_dir: str,
@@ -74,9 +83,7 @@ async def get_type_image(
                 if resp.status == 404:
                     log.debug("no doc8643 image for %s", ac_type)
                     try:
-                        os.makedirs(images_dir, exist_ok=True)
-                        with open(marker, "w"):
-                            pass
+                        await asyncio.to_thread(_write_file, marker, b"")
                     except Exception:
                         log.warning(
                             "failed to write notfound marker %s",
@@ -106,11 +113,7 @@ async def get_type_image(
                     log.warning("doc8643 returned empty body for %s", ac_type)
                     return None
 
-                os.makedirs(images_dir, exist_ok=True)
-                tmp = path + ".tmp"
-                with open(tmp, "wb") as f:
-                    f.write(data)
-                os.replace(tmp, path)
+                await asyncio.to_thread(_write_file, path, data)
                 log.info(
                     "cached doc8643 image for %s (%d bytes)",
                     ac_type,

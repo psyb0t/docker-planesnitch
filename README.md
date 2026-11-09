@@ -5,99 +5,66 @@
 [![license](https://raw.githubusercontent.com/psyb0t/docker-planesnitch/badges/license.svg)](LICENSE)
 [![Docker Pulls](https://img.shields.io/docker/pulls/psyb0t/planesnitch?style=flat-square)](https://hub.docker.com/r/psyb0t/planesnitch)
 
-Snitches on every interesting aircraft that dares fly near your locations — military jets, government spooks, emergency squawks, sketchy low-flyers, or whatever the fuck you tell it to watch for. Monitor multiple locations at once — your house, your office, grandma's house, Area 51, whatever. Rats them out straight to your Telegram or webhook like a paranoid neighbor with radar.
+Snitches on every interesting aircraft that dares fly near your locations: military jets, government spooks, emergency squawks, sketchy low-flyers, or whatever the fuck you tell it to watch for. Monitor multiple locations at once: your house, your office, grandma's house, Area 51, whatever. Rats them out straight to your Telegram or webhook like a paranoid neighbor with radar.
 
-No SDR required. No antenna. No hardware. Just an internet connection and a config file. Alerts via Telegram and/or webhooks. Works anywhere on the fuckin planet — and for as many places as you want.
+No SDR required. No antenna. No hardware. Just an internet connection and a config file. Works anywhere on the fuckin planet, for as many places as you want.
 
-## Table of Contents
+## Contents
 
-- [🚀 Quick Start](#-quick-start)
-- [⚙️ Configuration](#️-configuration)
-  - [Display Units](#display-units)
-  - [Locations](#locations)
-  - [Sources](#sources)
-  - [Watchlists](#watchlists)
-  - [Alerts](#alerts)
-  - [Notifications](#notifications)
-  - [What the alerts look like](#what-the-alerts-look-like)
-- [🤖 Telegram Setup](#-telegram-setup)
-- [🗃️ Plane-Alert-DB Lists](#️-plane-alert-db-lists)
-- [Agent integrations](#agent-integrations)
-- [📁 Project Structure](#-project-structure)
+- [🚀 Quick start](#-quick-start)
+- [⚙️ How you configure it](#️-how-you-configure-it)
+- [🔔 What the alerts look like](#-what-the-alerts-look-like)
+- [📚 Documentation](#-documentation)
+- [🤖 Agent integrations](#-agent-integrations)
+- [🛠️ Development](#️-development)
+- [☕ Sponsor](#-sponsor)
 - [📝 License](#-license)
 
-## 🚀 Quick Start
+## 🚀 Quick start
+
+Grab the example config and put in your location and Telegram bot:
 
 ```bash
-# grab the example config and edit it
-# with your location + notification settings
 curl -sL \
   https://raw.githubusercontent.com/psyb0t/docker-planesnitch/main/config.yaml.example \
   -o config.yaml
+```
 
-# optional: download CSV watchlists for
-# military/gov/police tracking
-# (see Plane-Alert-DB section below)
-# mkdir -p csv
-# BASE=https://raw.githubusercontent.com/sdr-enthusiasts/plane-alert-db/main
-# curl -sLo csv/plane-alert-mil.csv $BASE/plane-alert-mil.csv
-# curl -sLo csv/plane-alert-gov.csv $BASE/plane-alert-gov.csv
-# curl -sLo csv/plane-alert-pol.csv $BASE/plane-alert-pol.csv
-# curl -sLo csv/plane-alert-civ.csv $BASE/plane-alert-civ.csv
-# curl -sLo csv/plane-alert-pia.csv $BASE/plane-alert-pia.csv
-# curl -sLo csv/plane-alert-db.csv  $BASE/plane-alert-db.csv
+The example also watches military, government and police aircraft from [plane-alert-db](https://github.com/sdr-enthusiasts/plane-alert-db). Grab those lists:
 
-# let it rip — without CSV watchlists
-docker run \
-  -v ./config.yaml:/app/config.yaml:ro \
-  psyb0t/planesnitch
+```bash
+mkdir -p csv
+BASE=https://raw.githubusercontent.com/sdr-enthusiasts/plane-alert-db/main
+for list in mil gov pol civ pia; do
+  curl -sLo "csv/plane-alert-$list.csv" "$BASE/plane-alert-$list.csv"
+done
+curl -sLo csv/plane-alert-db.csv "$BASE/plane-alert-db.csv"
+```
 
-# or with CSV watchlists — mount your csv/ dir
-docker run \
-  -v ./config.yaml:/app/config.yaml:ro \
-  -v ./csv:/csv:ro \
-  psyb0t/planesnitch
+Let it rip:
 
-# full setup with persistent aircraft-type image cache
-docker run \
+```bash
+docker run -d --name planesnitch \
+  --restart unless-stopped \
   -v ./config.yaml:/app/config.yaml:ro \
   -v ./csv:/csv:ro \
   -v ./images:/images \
   psyb0t/planesnitch
 ```
 
-```
+```text
 2026-03-07 22:25:39 [planesnitch] INFO planesnitch starting
 2026-03-07 22:25:39 [planesnitch] INFO health endpoint listening on :8080
 2026-03-07 22:25:40 [planesnitch] INFO watchlist military: 8709 aircraft loaded
-2026-03-07 22:25:40 [planesnitch] INFO watchlist government: 1743 aircraft loaded
 2026-03-07 22:25:40 [planesnitch] INFO fetched 14 aircraft
-2026-03-07 22:25:40 [planesnitch] INFO ALERT [Military Spotter] [home] ae07e1 TEDDY64
+2026-03-07 22:25:40 [planesnitch] INFO ALERT [Military Spotter] [Home] ae07e1 TEDDY64
 ```
 
-## ⚙️ Configuration
+The [getting started guide](https://psyb0t.github.io/docker-planesnitch/getting-started/) walks through the Telegram bot setup and your first test alert.
 
-Single YAML file. Define watchlists (what to snitch on), alert rules (when to lose your shit), and notification targets (where to scream about it).
+## ⚙️ How you configure it
 
-### Display Units
-
-Control how altitude, distance, and speed show up in alerts and webhook payloads:
-
-```yaml
-display_units: aviation # default
-```
-
-| Preset     | Altitude | Distance | Speed |
-| ---------- | -------- | -------- | ----- |
-| `aviation` | ft       | nm       | kts   |
-| `metric`   | m        | km       | km/h  |
-| `imperial` | ft       | mi       | mph   |
-
-### Locations
-
-Define one or more named locations. Each location has coordinates and a search radius.
-
-> **Units:** Any distance or altitude value in the config accepts a unit suffix: `km`, `mi`, `nm`, `ft`, `m`. They all convert internally — use whatever makes sense. `radius: 100mi` and `max_altitude: 1km` both work. Plain numbers without a suffix default to km for distances and ft for altitudes.
+One YAML file. Define where to watch, where the data comes from, what to snitch on, when to lose your shit, and where to scream about it:
 
 ```yaml
 locations:
@@ -106,349 +73,91 @@ locations:
     lat: 38.8719
     lon: -77.0563
     radius: 150km
-  area51:
-    name: "Area 51"
-    lat: 37.2350
-    lon: -115.8111
-    radius: 50nm
-```
 
-Each location can have an optional `name` for pretty display in alerts. Falls back to the key if not set.
-
-### Sources
-
-Where to get the goods. Use multiple sources — they fetch in parallel for each location and deduplicate by ICAO hex, keeping the entry with the most data.
-
-> **Note:** `adsb_fi`, `airplanes_live`, and `adsb_one` return enriched data (full aircraft name, owner/operator, year). `adsb_lol` and `ultrafeeder` only return raw ADS-B fields. When using multiple sources, planesnitch automatically keeps the richest entry for each aircraft.
-
-```yaml
 sources:
-  # Public APIs — no hardware, no bullshit
-  - type: adsb_lol
   - type: adsb_fi
   - type: airplanes_live
-  - type: adsb_one
 
-  # Local ultrafeeder — if you're running your own receiver
-  - type: ultrafeeder
-    url: http://ultrafeeder:80/tar1090/data/aircraft.json
-```
-
-### Watchlists
-
-Tell the snitch what to look for. All types respect the location's radius — aircraft outside the radius are ignored regardless of type.
-
-| Type        | Matches On                                                                                              | Source                                                                                                |
-| ----------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `all`       | Every aircraft                                                                                          | Everything within the location's radius                                                               |
-| `squawk`    | Transponder squawk code                                                                                 | Inline list                                                                                           |
-| `icao`      | ICAO hex address                                                                                        | Inline list                                                                                           |
-| `icao_type` | ICAO type designator ([doc 8643](https://www.icao.int/publications/DOC8643/Pages/Search.aspx)) e.g. `C17`, `B738` | Inline list                                                                                           |
-| `icao_csv`  | ICAO hex from CSV                                                                                       | Local file in `csv/` dir ([plane-alert-db](https://github.com/sdr-enthusiasts/plane-alert-db) format) |
-| `proximity` | Altitude filter                                                                                         | Location radius + altitude limits                                                                     |
-
-```yaml
 watchlists:
-  # The panic buttons
   emergencies:
     type: squawk
     values: ["7500", "7600", "7700"]
-
-  # 8,709 military aircraft — the big boys
   military:
     type: icao_csv
     source: plane-alert-mil.csv
 
-  # Government aircraft
-  government:
-    type: icao_csv
-    source: plane-alert-gov.csv
-
-  # Police / law enforcement
-  police:
-    type: icao_csv
-    source: plane-alert-pol.csv
-
-  # Stalk specific aircraft by hex
-  my_planes:
-    type: icao
-    values: ["4ca123", "a12345"]
-
-  # Stalk by aircraft type — any A400M, Rafale, or Alpha Jet
-  cool_jets:
-    type: icao_type
-    values: ["A400", "RFAL", "AJET"]
-
-  # Every single aircraft in range
-  everything:
-    type: all
-
-  # WTF just buzzed my house
-  low_flyers:
-    type: proximity
-    min_altitude: 0ft
-    max_altitude: 3000ft
-```
-
-### Alerts
-
-Connect watchlists to notifications. Optionally filter by `locations` — if omitted, all locations are checked. Cooldown so it doesn't spam the shit out of you about the same C-17 doing laps for 3 hours. Durations support `s`, `m`, `h` — e.g. `5m`, `1h30m`, `90s`, or plain seconds:
-
-```yaml
 alerts:
-  - name: "Emergency Alert"
-    watchlists: [emergencies]
-    cooldown: 1m
-    notify: [tg_emergencies, my_webhook]
-
   - name: "Military Spotter"
-    watchlists: [military, government]
+    watchlists: [emergencies, military]
     cooldown: 5m
-    notify: [tg_spotting]
-
-  # Only alert for this watchlist at specific locations
-  - name: "Everything at Home"
-    locations: [home]
-    watchlists: [everything]
-    cooldown: 1m
     notify: [tg_main]
-```
 
-### Notifications
-
-**Telegram** — different alerts to different channels:
-
-```yaml
-notifications:
-  tg_emergencies:
-    type: telegram
-    bot_token: "123456:ABC-DEF"
-    chat_id: "-100123456789"
-
-  tg_spotting:
-    type: telegram
-    bot_token: "123456:ABC-DEF"
-    chat_id: "-100987654321"
-```
-
-When an aircraft has an ICAO type designator (field `t`), planesnitch fetches the matching aircraft image from [doc8643.com](https://doc8643.com) and:
-
-- attaches it to the Telegram message as a photo (caption = the alert text)
-- embeds the JPEG bytes (base64) in webhook payloads as `image_base64`
-
-Images are cached in `images/` (mount `-v ./images:/images` to persist across restarts). Misses are recorded as `.notfound` markers so types without images aren't re-fetched. The cache survives indefinitely — delete the dir to force a refresh.
-
-To opt out per notification target (e.g. avoid blowing up a chat with photos, or cut webhook payload size on Home Assistant), set `attach_image: false` on the target. Default is `true`. If every target attached to a rule opts out, planesnitch skips the doc8643 fetch entirely for that alert — no wasted bandwidth or disk.
-
-```yaml
 notifications:
   tg_main:
     type: telegram
-    bot_token: "..."
-    chat_id: "..."
-    attach_image: false   # text-only alerts to this chat
+    bot_token: "123456:ABC-DEF"
+    chat_id: "-100123456789"
 ```
 
-**Webhook** — POSTs a JSON array of alert objects per poll cycle:
+Six watchlist types: `all`, `squawk`, `icao`, `icao_type`, `icao_csv` and `proximity` (the "what just buzzed my house" altitude filter). Alerts go to Telegram, with an aircraft-type photo, or to webhooks as JSON. Edit the file while it runs; the next poll picks it up. Every key is in the [configuration reference](https://psyb0t.github.io/docker-planesnitch/configuration/).
 
-```yaml
-notifications:
-  my_webhook:
-    type: webhook
-    url: "https://example.com/hook"
-    headers:
-      Authorization: "Bearer xxx"
-```
+## 🔔 What the alerts look like
 
-Webhook payload schema — always a JSON array, even for a single alert:
-
-```json
-[
-  {
-    "alert": "Military Spotter",
-    "location": "Home",
-    "match": {
-      "reason": "icao_csv_match",
-      "watchlist": "military",
-      "info": {
-        "Registration": "94-0067",
-        "Operator": "USAF",
-        "Type": "BOEING C-17A Globemaster III",
-        "ICAO Type": "C17",
-        "CMPG": "Mil",
-        "Tag 1": "Cargo",
-        "Tag 2": "Strategic Airlift",
-        "Tag 3": "Freedom Delivery",
-        "Category": "US Military",
-        "Link": "https://w.wiki/..."
-      }
-    },
-    "units": {
-      "altitude": "ft",
-      "distance": "nm",
-      "speed": "kts"
-    },
-    "image_base64": "/9j/4AAQSkZJRgABAQ...",  // null if no image cached
-    "aircraft": {
-      "hex": "ae07e1",
-      "flight": "TEDDY64",
-      "registration": "94-0067",
-      "type": "C17",
-      "description": "BOEING C-17A Globemaster III",
-      "owner_operator": "USAF",
-      "year": "1994",
-      "squawk": "1613",
-      "emergency": "none",
-      "altitude": 12350,
-      "lat": 37.9306,
-      "lon": -78.7019,
-      "speed": 413,
-      "track": 245.3,
-      "distance": 98.9
-    }
-  }
-]
-```
-
-The `match` object varies by watchlist type:
-
-| Watchlist Type | Match Fields                                                                         |
-| -------------- | ------------------------------------------------------------------------------------ |
-| `squawk`       | `{"reason": "squawk", "watchlist": "...", "squawk": "7700", "distance_km": 12.3}`            |
-| `icao`         | `{"reason": "icao_match", "watchlist": "...", "distance_km": 12.3}`                          |
-| `icao_type`    | `{"reason": "icao_type_match", "watchlist": "...", "type": "C17", "distance_km": 12.3}`      |
-| `icao_csv`     | `{"reason": "icao_csv_match", "watchlist": "...", "info": {"Operator": "..."}, "distance_km": 12.3}` |
-| `all`          | `{"reason": "all", "watchlist": "...", "distance_km": 12.3}`                                 |
-| `proximity`    | `{"reason": "proximity", "watchlist": "...", "distance_km": 12.3}`                           |
-
-### What the alerts look like
-
-```
-🔔 Emergency Alert
-🚨 squawk 7700 (EMERGENCY)
-✈️ RYR1234
-🛩️ BOEING 737-800 | EI-ABC | 2015
-💼 RYANAIR
-📍 45.5000, 28.1000 | 3,200 ft
-📏 6 nm from home
-💨 280 kts
-🗺️ https://globe.adsb.fi/?icao=4ca123
-```
-
-```
+```text
 🔔 Military Spotter
 ✈️ TEDDY64
 🛩️ BOEING C-17A Globemaster III | 94-0067 | 1994
 💼 USAF
-🏷️ USAF — USAF
+🏷️ USAF — US Military
 📍 37.9306, -78.7019 | 12,350 ft
-📏 99 nm from home
+📏 99 nm from Home
 💨 413 kts
 📡 squawk 1613
 🗺️ https://globe.adsb.fi/?icao=ae07e1
 ```
 
-Click the link, watch the bastard in real time on [globe.adsb.fi](https://globe.adsb.fi).
+Click the link, watch the bastard in real time on [globe.adsb.fi](https://globe.adsb.fi). The webhook payload is documented in [notifications](https://psyb0t.github.io/docker-planesnitch/notifications/#webhook).
 
-## 🤖 Telegram Setup
+## 📚 Documentation
 
-1. Message [@BotFather](https://t.me/BotFather), send `/newbot`, get a token
-2. For personal alerts: message your bot, then check `https://api.telegram.org/bot<TOKEN>/getUpdates` for your chat ID
-3. For channel alerts: add bot as admin, post something, check `getUpdates` for the channel ID (starts with `-100`)
+The whole manual lives at **[psyb0t.github.io/docker-planesnitch](https://psyb0t.github.io/docker-planesnitch/)**.
 
-## 🗃️ Plane-Alert-DB Lists
+| Page | What's in it |
+| --- | --- |
+| [Getting started](https://psyb0t.github.io/docker-planesnitch/getting-started/) | Config, Telegram bot, CSVs, first alert |
+| [Configuration](https://psyb0t.github.io/docker-planesnitch/configuration/) | Every key, unit and default, plus env variables |
+| [Watchlists](https://psyb0t.github.io/docker-planesnitch/watchlists/) | The six types and the plane-alert-db lists |
+| [Notifications](https://psyb0t.github.io/docker-planesnitch/notifications/) | Telegram format, photos, the webhook payload |
+| [How it works](https://psyb0t.github.io/docker-planesnitch/how-it-works/) | Polling, sources, rate limits, dedup, cooldowns, health endpoint |
+| [Deployment](https://psyb0t.github.io/docker-planesnitch/deployment/) | Docker, Compose, volumes, image tags, upgrades |
+| [Security](https://psyb0t.github.io/docker-planesnitch/security/) | What leaves your machine and how to lock it down |
+| [Troubleshooting](https://psyb0t.github.io/docker-planesnitch/troubleshooting/) | Every error message and what to do about it |
 
-Uses the community-curated lists from [sdr-enthusiasts/plane-alert-db](https://github.com/sdr-enthusiasts/plane-alert-db) — 15,000+ aircraft catalogued by the fine degenerates of the plane spotting community:
+## 🤖 Agent integrations
 
-| List             | Count  | File                                                                                                     |
-| ---------------- | ------ | -------------------------------------------------------------------------------------------------------- |
-| 🎖️ Military      | 8,709  | [`plane-alert-mil.csv`](https://github.com/sdr-enthusiasts/plane-alert-db/blob/main/plane-alert-mil.csv) |
-| 🏛️ Government    | 1,743  | [`plane-alert-gov.csv`](https://github.com/sdr-enthusiasts/plane-alert-db/blob/main/plane-alert-gov.csv) |
-| 🚔 Police        | 932    | [`plane-alert-pol.csv`](https://github.com/sdr-enthusiasts/plane-alert-db/blob/main/plane-alert-pol.csv) |
-| ✈️ Civilian      | 4,530  | [`plane-alert-civ.csv`](https://github.com/sdr-enthusiasts/plane-alert-db/blob/main/plane-alert-civ.csv) |
-| 🔒 Privacy (PIA) | 94     | [`plane-alert-pia.csv`](https://github.com/sdr-enthusiasts/plane-alert-db/blob/main/plane-alert-pia.csv) |
-| 📋 Everything    | 15,914 | [`plane-alert-db.csv`](https://github.com/sdr-enthusiasts/plane-alert-db/blob/main/plane-alert-db.csv)   |
-
-Download what you need into your `csv/` directory:
-
-```bash
-mkdir -p csv
-BASE=https://raw.githubusercontent.com/sdr-enthusiasts/plane-alert-db/main
-curl -sLo csv/plane-alert-mil.csv $BASE/plane-alert-mil.csv
-curl -sLo csv/plane-alert-gov.csv $BASE/plane-alert-gov.csv
-curl -sLo csv/plane-alert-pol.csv $BASE/plane-alert-pol.csv
-curl -sLo csv/plane-alert-civ.csv $BASE/plane-alert-civ.csv
-curl -sLo csv/plane-alert-pia.csv $BASE/plane-alert-pia.csv
-curl -sLo csv/plane-alert-db.csv  $BASE/plane-alert-db.csv
-```
-
-`plane-alert-db.csv` contains everything (mil + gov + pol + civ + pia) in one file. If you just want to watch all 15,000+ aircraft, use that one and skip the rest.
-
-Re-download whenever you want fresh data. Or write your own CSV — just needs an ICAO hex column first.
-
-## Agent integrations
-
-The [skill](.agents/skills/planesnitch) works in any agent that reads `.agents/skills/` (such as [peen](https://github.com/psyb0t/peen)), and installs natively in the clients below.
-
-### Claude Code
+The [skill](.agents/skills/planesnitch) works in any agent that reads `.agents/skills/` (such as [peen](https://github.com/psyb0t/peen)), and installs natively in Claude Code, Codex and OpenClaw:
 
 ```bash
 claude plugin marketplace add psyb0t/agents
 claude plugin install planesnitch@psyb0t
 ```
 
-### Codex
+Codex and OpenClaw commands are on the [agent integrations page](https://psyb0t.github.io/docker-planesnitch/integrations/).
+
+## 🛠️ Development
 
 ```bash
-codex plugin marketplace add psyb0t/agents
-codex plugin add planesnitch@psyb0t
+make test   # pytest in Docker
+make lint   # ruff + mypy in Docker
+make help   # everything else
 ```
 
-Installed via the marketplace, invoke it as `$planesnitch:planesnitch`. Codex also picks the skill up automatically with no install in any repo containing `.agents/skills/`, where it invokes as plain `$planesnitch`.
+Not 47 microservices. It watches planes and sends messages. That's it. Layout and the release pipeline are in [development](https://psyb0t.github.io/docker-planesnitch/development/).
 
-### OpenClaw
+## ☕ Sponsor
 
-The skill is published to ClawHub on every release:
-
-```bash
-openclaw skills install @psyb0t/planesnitch
-```
-
-## 📁 Project Structure
-
-```
-├── planesnitch/
-│   ├── __init__.py
-│   ├── __main__.py       # entry point + main loop
-│   ├── config.py         # config loading, unit conversion, constants
-│   ├── sources.py        # ADS-B API fetching + dedup
-│   ├── geo.py            # distance calculations
-│   ├── watchlists.py     # watchlist loading + matching
-│   ├── alerts.py         # alert checking + cooldowns
-│   ├── images.py         # doc8643 aircraft type image caching
-│   └── notify.py         # telegram + webhook formatting + sending
-├── config.yaml.example   # example config — copy to config.yaml and fill in your shit
-├── csv/                  # CSV watchlists go here, mounted to /csv
-├── images/               # cached doc8643 type images, mounted to /images
-├── run.sh                # build + run in docker
-├── requirements.txt
-├── Dockerfile
-└── README.md
-```
-
-Not 47 microservices. It watches planes and sends messages. That's it.
-
-Environment variables:
-
-| Variable              | Default       | Description                       |
-| --------------------- | ------------- | --------------------------------- |
-| `LOG_LEVEL`              | `INFO`        | Set to `DEBUG` for verbose output                   |
-| `PLANESNITCH_CONFIG`     | `config.yaml` | Path to config file                                 |
-| `PLANESNITCH_CSV_DIR`    | `/csv`        | Path to CSV watchlist files                         |
-| `PLANESNITCH_IMAGES_DIR` | `/images`     | Path to cached doc8643 aircraft-type images          |
-
-A health endpoint runs on port `8080`. The Docker image includes a built-in healthcheck against it.
+<a href="https://www.buymeacoffee.com/psyb0t"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-blue.png" alt="Buy Me a Coffee" height="60" width="217"></a>
 
 ## 📝 License
 
-[WTFPL](LICENSE) — Do What The Fuck You Want To.
+[WTFPL](LICENSE). Do What The Fuck You Want To. See [CHANGELOG.md](CHANGELOG.md) for release notes.

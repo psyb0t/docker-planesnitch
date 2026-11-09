@@ -45,8 +45,7 @@ def bounding_circle(
     for loc in locations:
         dist = calc_distance_km(clat, clon, loc["lat"], loc["lon"])
         edge = dist + loc.get("radius_km", 150)
-        if edge > radius:
-            radius = edge
+        radius = max(radius, edge)
 
     return clat, clon, radius
 

@@ -18,3 +18,9 @@ test_webhook_server.py
 Makefile
 LICENSE
 CLAUDE.md
+
+# agent scratch and local caches, never part of a build
+.pytest_cache/
+.ruff_cache/
+.testing/
+docs/

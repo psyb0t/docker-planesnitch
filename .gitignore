@@ -3,6 +3,7 @@ config.test.yaml
 csv/
 __pycache__/
 .mypy_cache/
+.ruff_cache/
 .research_files/
 *.pyc
 *.bak
@@ -15,3 +16,7 @@ images/*
 
 # Review receipt for the local release script.
 git-update.sh.debot
+.testing/
+
+# Local agent and editor settings.
+*.local.json

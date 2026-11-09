@@ -430,3 +430,47 @@ class TestLoadConfig:
                 load_config(path)
         finally:
             os.unlink(path)
+
+    def test_bad_radius_fails_at_load(self):
+        locations = {"home": {"lat": 0, "lon": 0, "radius": "far"}}
+        path = self._write_config(self._minimal_config(locations=locations))
+        try:
+            with pytest.raises(SystemExit, match="invalid value for radius"):
+                load_config(path)
+        finally:
+            os.unlink(path)
+
+    def test_conflicting_radius_keys_fail_at_load(self):
+        locations = {"home": {"lat": 0, "lon": 0, "radius_km": 5, "radius_nm": 3}}
+        path = self._write_config(self._minimal_config(locations=locations))
+        try:
+            with pytest.raises(SystemExit, match="conflicting keys"):
+                load_config(path)
+        finally:
+            os.unlink(path)
+
+    def test_location_without_coordinates_fails_at_load(self):
+        locations = {"home": {"lat": 0, "radius": "5km"}}
+        path = self._write_config(self._minimal_config(locations=locations))
+        try:
+            with pytest.raises(SystemExit, match="needs lat and lon"):
+                load_config(path)
+        finally:
+            os.unlink(path)
+
+    def test_bad_proximity_altitude_fails_at_load(self):
+        watchlists = {"low": {"type": "proximity", "max_altitude": "high"}}
+        path = self._write_config(self._minimal_config(watchlists=watchlists))
+        try:
+            with pytest.raises(SystemExit, match="invalid value for max_altitude"):
+                load_config(path)
+        finally:
+            os.unlink(path)
+
+    def test_non_mapping_config_fails(self):
+        path = self._write_config("- just\n- a list\n")
+        try:
+            with pytest.raises(SystemExit, match="YAML mapping"):
+                load_config(path)
+        finally:
+            os.unlink(path)

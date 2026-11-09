@@ -1,39 +1,89 @@
 name: pipeline
 
-on: [push]
+# Pushes to main run lint and tests, then publish :latest and :sha-<commit>.
+# A v* tag waits for that commit's main run to succeed, then promotes the same
+# image digest to the release tag without rebuilding or rerunning checks.
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+
+permissions: {}
 
 jobs:
-  call-docker-image-workflow:
+  code:
+    if: "!startsWith(github.ref, 'refs/tags/')"
     permissions:
-      contents: write # GitHub Release
-      security-events: write # upload the Grype SARIF to the Security tab
-    uses: psyb0t/reusable-github-workflows/.github/workflows/docker-image-workflow.yml@master
-
+      contents: read
+    uses: psyb0t/reusable-github-workflows/.github/workflows/code-workflow.yml@master
     with:
-      repository_name: psyb0t/planesnitch
-      target_platforms: "linux/amd64,linux/arm64"
-      # Report scan findings to the Security tab but don't fail the run, so the
-      # clawhub publish job below can depend on this workflow succeeding.
-      scan_fail_build: false
+      lint_command: "make lint" # ruff + mypy in the test image
+      test_command: "make test" # pytest in the test image
 
-    secrets:
-      dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
-      dockerhub_token: ${{ secrets.DOCKERHUB_TOKEN }}
-
-  # Self-hosted version + license SVG badges committed to the `badges` branch
-  # (no third-party render service). Runs on the default branch and on tags.
+  # Self-hosted version + license SVG badges committed to the `badges` branch.
   badges:
-    needs: [call-docker-image-workflow]
-    if: github.ref_name == github.event.repository.default_branch || startsWith(github.ref, 'refs/tags/')
+    needs: [code, wait]
+    if: "always() && ((github.ref_name == github.event.repository.default_branch && needs.code.result == 'success') || (startsWith(github.ref, 'refs/tags/') && needs.wait.result == 'success'))"
     permissions:
       contents: write
     uses: psyb0t/reusable-github-workflows/.github/workflows/create-badges.yml@master
 
-  # Publish the skill (.agents/skills/) to ClawHub. Tag pushes ONLY, after the
-  # image build + GitHub release have succeeded.
-  publish-to-clawhub:
-    needs: [call-docker-image-workflow]
+  call-docker-image-workflow:
+    needs: [code]
+    if: "!startsWith(github.ref, 'refs/tags/')"
+    permissions:
+      contents: write
+      security-events: write # upload the Grype SARIF to the Security tab
+    uses: psyb0t/reusable-github-workflows/.github/workflows/docker-image-workflow.yml@master
+    with:
+      repository_name: psyb0t/planesnitch
+      target_platforms: "linux/amd64,linux/arm64"
+      push_sha_tag: true
+      # Report image findings to the Security tab without failing the run.
+      scan_fail_build: false
+    secrets:
+      dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+      dockerhub_token: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  wait:
     if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      actions: read
+    uses: psyb0t/reusable-github-workflows/.github/workflows/wait-for-default-branch.yml@master
+
+  docker-promote:
+    needs: [wait]
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+      security-events: write
+    uses: psyb0t/reusable-github-workflows/.github/workflows/docker-image-workflow.yml@master
+    with:
+      repository_name: psyb0t/planesnitch
+      target_platforms: "linux/amd64,linux/arm64"
+      promote_on_tag: true
+      create_release: false
+      scan_fail_build: false
+    secrets:
+      dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+      dockerhub_token: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  release:
+    needs: [docker-promote]
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    uses: psyb0t/reusable-github-workflows/.github/workflows/release-workflow.yml@master
+
+  # Publish the skill (.agents/skills/) to ClawHub after the release exists.
+  publish-to-clawhub:
+    needs: [release]
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: read
     uses: psyb0t/reusable-github-workflows/.github/workflows/clawhub-publish.yml@master
+    with:
+      skill_names: '["planesnitch"]'
+      plugin_names: "[]"
     secrets:
       clawhub_token: ${{ secrets.CLAWHUB_TOKEN }}

@@ -9,6 +9,7 @@ import time
 from typing import Any
 
 import aiohttp
+import yaml
 
 from .alerts import check_alerts
 from .config import load_config
@@ -62,6 +63,30 @@ async def _health_handler(
 _start_time: float = time.time()
 
 
+def reload_config(config_path: str, current: dict[str, Any]) -> dict[str, Any]:
+    """Return the re-read config if it changed and is valid, else `current`.
+
+    load_config reports invalid configs with SystemExit, which must not stop a
+    running process: a bad edit keeps the last good config instead.
+    """
+    try:
+        new_config = load_config(config_path)
+    except (
+        OSError,
+        yaml.YAMLError,
+        ValueError,
+        TypeError,
+        KeyError,
+        SystemExit,
+    ) as err:
+        log.warning("config reload failed, keeping current: %s", err)
+        return current
+    if new_config == current:
+        return current
+    log.info("config reloaded (changed)")
+    return new_config
+
+
 async def run(config_path: str, config: dict[str, Any]) -> None:
     global _last_poll, _last_aircraft_count
     cooldowns: dict[tuple[str, str], float] = {}
@@ -78,14 +103,10 @@ async def run(config_path: str, config: dict[str, Any]) -> None:
         while True:
             now = time.time()
 
-            try:
-                new_config = load_config(config_path)
-                if new_config != config:
-                    log.info("config reloaded (changed)")
-                    config = new_config
-                    last_csv_refresh = 0.0
-            except Exception:
-                log.warning("config reload failed, keeping current", exc_info=True)
+            new_config = reload_config(config_path, config)
+            if new_config is not config:
+                config = new_config
+                last_csv_refresh = 0.0
 
             poll_interval = config.get("poll_interval", 15)
             locations = config["locations"]

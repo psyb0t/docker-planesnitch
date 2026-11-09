@@ -76,7 +76,7 @@ def format_message(
         sq_info = squawk_meaning(sq)
         if sq_info:
             lines.append(
-                f"\U0001f6a8 squawk {sq}" f" ({sq_info['meaning']}, {sq_info['scope']})"
+                f"\U0001f6a8 squawk {sq} ({sq_info['meaning']}, {sq_info['scope']})"
             )
         else:
             lines.append(f"\U0001f6a8 squawk {sq}")
@@ -128,8 +128,7 @@ def format_message(
         sq_info = squawk_meaning(squawk)
         if sq_info:
             lines.append(
-                f"\U0001f4e1 squawk {squawk}"
-                f" ({sq_info['meaning']}, {sq_info['scope']})"
+                f"\U0001f4e1 squawk {squawk} ({sq_info['meaning']}, {sq_info['scope']})"
             )
         else:
             lines.append(f"\U0001f4e1 squawk {squawk}")

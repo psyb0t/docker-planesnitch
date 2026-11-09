@@ -50,7 +50,9 @@ def check_alerts(
             rule_locs = locations
             rule_loc_filter = rule.get("locations")
             if rule_loc_filter:
-                rule_locs = {n: l for n, l in locations.items() if n in rule_loc_filter}
+                rule_locs = {
+                    n: loc for n, loc in locations.items() if n in rule_loc_filter
+                }
                 if not rule_locs:
                     continue
 

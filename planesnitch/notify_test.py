@@ -124,7 +124,7 @@ class TestFormatMessage:
         )
         # squawk should appear in the reason line but not in the extra squawk line
         lines = msg.split("\n")
-        squawk_lines = [l for l in lines if "7700" in l]
+        squawk_lines = [line for line in lines if "7700" in line]
         assert len(squawk_lines) == 1
 
     def test_csv_info(self):
@@ -190,7 +190,9 @@ class TestFormatMessage:
         )
         assert "BOEING C-17A Globemaster III" in msg
         # Should not show raw type code when desc is present
-        lines = [l for l in msg.split("\n") if "C17" in l and "BOEING" not in l]
+        lines = [
+            line for line in msg.split("\n") if "C17" in line and "BOEING" not in line
+        ]
         assert len(lines) == 0
 
     def test_type_fallback_when_no_desc(self):

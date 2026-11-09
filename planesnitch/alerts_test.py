@@ -41,7 +41,7 @@ class TestCheckAlerts:
         cooldowns = {}
         result = check_alerts(aircraft, rules, WATCHLISTS, LOCATIONS, cooldowns)
         assert len(result) == 1
-        ac, rule, match, loc_name, loc = result[0]
+        ac, rule, match, _loc_name, _loc = result[0]
         assert ac["hex"] == "aaa111"
         assert rule["name"] == "All"
         assert match["reason"] == "all"

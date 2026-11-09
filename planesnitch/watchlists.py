@@ -60,19 +60,19 @@ def load_watchlists(
             continue
 
         if wl_type == "squawk":
-            values = set(str(v) for v in wl.get("values", []))
+            values = {str(v) for v in wl.get("values", [])}
             log.debug("watchlist %s: squawk values %s", name, values)
             loaded[name] = {"type": "squawk", "values": values}
             continue
 
         if wl_type == "icao":
-            values = set(v.lower() for v in wl.get("values", []))
+            values = {v.lower() for v in wl.get("values", [])}
             log.debug("watchlist %s: icao values %s", name, values)
             loaded[name] = {"type": "icao", "values": values}
             continue
 
         if wl_type == "icao_type":
-            values = set(str(v).upper() for v in wl.get("values", []))
+            values = {str(v).upper() for v in wl.get("values", [])}
             log.debug("watchlist %s: icao_type values %s", name, values)
             loaded[name] = {"type": "icao_type", "values": values}
             continue

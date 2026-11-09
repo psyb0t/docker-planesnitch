@@ -1,5 +1,7 @@
 """Tests for watchlists.py."""
 
+from typing import Any, ClassVar
+
 from .watchlists import matches_watchlist, parse_alert_csv
 
 
@@ -56,7 +58,7 @@ class TestParseAlertCsv:
 
 
 class TestMatchesWatchlist:
-    LOC = {"lat": 38.8719, "lon": -77.0563, "radius": "50km"}
+    LOC: ClassVar[dict[str, Any]] = {"lat": 38.8719, "lon": -77.0563, "radius": "50km"}
 
     def test_squawk_match(self):
         ac = {"hex": "abc123", "lat": 38.88, "lon": -77.06, "squawk": "7700"}

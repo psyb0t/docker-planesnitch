@@ -262,12 +262,26 @@ def load_config(path: str) -> dict[str, Any]:
     with open(path) as f:
         cfg = yaml.safe_load(f)
 
+    if not isinstance(cfg, dict):
+        raise SystemExit("config must be a YAML mapping")
+
     for key in ("locations", "sources", "watchlists", "alerts", "notifications"):
         if key not in cfg:
             raise SystemExit(f"missing required config key: {key}")
 
     if not isinstance(cfg["locations"], dict) or not cfg["locations"]:
         raise SystemExit("locations must be a non-empty dict of named locations")
+
+    for key, loc in cfg["locations"].items():
+        if not isinstance(loc, dict) or "lat" not in loc or "lon" not in loc:
+            raise SystemExit(f"location {key!r} needs lat and lon")
+        # Raises SystemExit on a bad or conflicting radius now, not mid-poll.
+        resolve_distance_km(loc, "radius", default=150)
+
+    for wl in (cfg.get("watchlists") or {}).values():
+        if isinstance(wl, dict) and wl.get("type") == "proximity":
+            resolve_altitude_ft(wl, "min_altitude")
+            resolve_altitude_ft(wl, "max_altitude")
 
     du = cfg.get("display_units", "aviation")
     if du not in VALID_DISPLAY_UNITS:

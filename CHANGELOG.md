@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.9.0], 2026-11-09
+
+- **Config errors no longer kill a running instance.** planesnitch re-reads `config.yaml` every poll, but most validation errors in an edited file used to stop the process instead of keeping the last good config. Now any invalid edit logs `config reload failed, keeping current: <reason>` and the poll goes on.
+- **Radius and altitude values are checked when the config loads.** A bad or conflicting `radius` or proximity altitude used to stop the process at the first poll that used it. It now fails at startup with the same message, or is rejected on reload. A location without `lat` or `lon`, and a file that isn't a YAML mapping, also fail with a clear message instead of a traceback.
+- **Image cache writes no longer block the event loop.** Photos and `.notfound` markers are written in a worker thread, through a temporary file.
+- **Pipeline.** Pushes to `main` run lint and tests, then publish `:latest` and `:sha-<commit>`. A `v*` tag waits for that `main` run and promotes the same image digest to `:vX.Y.Z` without rebuilding, a separate job creates the GitHub release from the tag notes, and the skill goes to ClawHub after that.
+- **`make lint` and `make format`** run ruff and mypy in the test image with pinned tool versions from `requirements-dev.txt`. `make test` uses the same pinned pytest. All three run as your user, so they never leave root-owned files in the checkout.
+- **Documentation** moved to https://psyb0t.github.io/docker-planesnitch/, written against the code. It fixes the README's alert examples, which showed squawk meanings and CSV tags differently from what planesnitch sends, adds the webhook's `squawk_meaning` field, and documents config hot reload, location grouping, rate-limit backoff and the health endpoint.
+- The README gets a Sponsor section, and `FUNDING.yml` adds Buy Me a Coffee.
+
 ## [1.8.7], 2026-10-10
 
 Documentation only. The README's agent integrations section names [peen](https://github.com/psyb0t/peen) as an example of an agent that reads `.agents/skills/`.
