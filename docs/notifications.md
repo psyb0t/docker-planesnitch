@@ -1,7 +1,6 @@
 ---
-title: "Notifications"
+title: Notifications
 description: "How planesnitch sends alerts to Telegram and webhooks: message format, batching, aircraft-type photos, the webhook JSON payload and match fields."
-nav_order: 5
 ---
 
 # Notifications

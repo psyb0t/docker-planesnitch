@@ -1,7 +1,6 @@
 ---
-title: "Agent integrations"
-description: "Install the planesnitch agent skill in Claude Code, Codex or OpenClaw, so an AI agent can write the config, set up watchlists and run the container for you."
-nav_order: 10
+title: Agent integrations
+description: Install the planesnitch agent skill in Claude Code, Codex or OpenClaw, so an AI agent can write the config, set up watchlists and run the container for you.
 ---
 
 # Agent integrations

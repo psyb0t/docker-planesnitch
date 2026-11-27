@@ -1,7 +1,6 @@
 ---
-title: "How it works"
+title: How it works
 description: "What planesnitch does each poll: grouping locations into requests, querying ADS-B sources, rate-limit backoff, deduplication, matching and cooldowns."
-nav_order: 6
 ---
 
 # How it works

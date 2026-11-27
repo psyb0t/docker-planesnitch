@@ -1,7 +1,6 @@
 ---
-title: "Development"
+title: Development
 description: "How planesnitch is laid out and built: module map, Make targets for tests, lint and formatting, and the main-branch and tag release pipeline."
-nav_order: 11
 ---
 
 # Development
@@ -58,4 +57,4 @@ Push release commits to `main` before tagging them, or the tag has nothing to pr
 
 ## Documentation
 
-This site is built by GitHub Pages from [`docs/`](https://github.com/psyb0t/docker-planesnitch/tree/main/docs) on `main` with Jekyll and the Just the Docs theme. Every page needs front matter with a `title`, a `description` of 50 to 170 characters and a `nav_order`. Link between pages with relative `.md` paths and to files outside `docs/` with full GitHub URLs. Keep each prose paragraph on one line.
+This site is built with Docusaurus from [`docs/`](https://github.com/psyb0t/docker-planesnitch/tree/main/docs) and the project in `website/`, and the `docs.yml` workflow publishes it from `main`. `make docs` builds it in a pinned Node container into the ignored `website/build`, with no network during the build, and fails on a broken link or anchor. `make docs-lock` refreshes `website/pnpm-lock.yaml` under pnpm's seven-day package age gate. Every page needs front matter with a `title` and a `description` of 50 to 170 characters, and a new page also goes into `website/sidebars.mjs` and `website/static/llms.txt`. Link between pages with relative `.md` paths and to files outside `docs/` with full GitHub URLs. Keep each prose paragraph on one line.

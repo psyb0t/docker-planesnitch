@@ -1,12 +1,12 @@
 ---
 name: planesnitch
-description: Self-hosted aircraft monitor — watches one or more named locations for interesting aircraft (military/gov/police via plane-alert-db CSVs, emergency squawks 7500/7600/7700, custom ICAO hex/type lists, low-flyers by altitude, or literally everything) using free online ADS-B APIs (adsb.lol, adsb.fi, airplanes.live, adsb.one) or your own ultrafeeder — no SDR, no antenna, no hardware. Fires alerts to Telegram (with doc8643 aircraft-type photos) and/or webhooks (JSON array + base64 image), per-alert cooldowns, config-file driven (config.yaml), runs in Docker. Use when the user wants to monitor/alert on aircraft near a location, get pinged when a military/government/police plane flies overhead, watch for emergency squawks, or build their own plane-spotting radar without buying hardware.
+description: Self-hosted aircraft monitor, watches one or more named locations for interesting aircraft (military/gov/police via plane-alert-db CSVs, emergency squawks 7500/7600/7700, custom ICAO hex/type lists, low-flyers by altitude, or literally everything) using free online ADS-B APIs (adsb.lol, adsb.fi, airplanes.live, adsb.one) or your own ultrafeeder, no SDR, no antenna, no hardware. Fires alerts to Telegram (with doc8643 aircraft-type photos) and/or webhooks (JSON array + base64 image), per-alert cooldowns, config-file driven (config.yaml), runs in Docker. Use when the user wants to monitor/alert on aircraft near a location, get pinged when a military/government/police plane flies overhead, watch for emergency squawks, or build their own plane-spotting radar without buying hardware.
 homepage: https://github.com/psyb0t/docker-planesnitch
 user-invocable: true
 permissions:
-  - "network: outbound HTTPS polling of public ADS-B APIs (adsb.lol/adsb.fi/airplanes.live/adsb.one) or a self-hosted ultrafeeder, plus outbound alert delivery to the Telegram Bot API and/or whatever webhook URL(s) you configure"
-  - "shell: docker (run the container); curl (grab config/CSV files, optional Telegram getUpdates lookup)"
-  - "filesystem: reads a local config.yaml (locations/coords, Telegram bot tokens, webhook URLs+headers); optionally reads local CSV watchlists and writes/reads a local image cache"
+  network: "The container polls public ADS-B APIs over HTTPS (adsb.lol, adsb.fi, airplanes.live, adsb.one) or a self-hosted ultrafeeder, and sends alerts to the Telegram Bot API and the webhook URLs you configure. Setup downloads the example config and plane-alert-db CSVs from raw.githubusercontent.com and pulls the image from Docker Hub."
+  shell: "docker (run the container) and curl (download the config and CSV files, optional Telegram getUpdates lookup)."
+  filesystem: "Reads a local config.yaml (locations, Telegram bot tokens, webhook URLs and headers) and optional CSV watchlists, read-only. Writes only the local image cache directory."
 metadata:
   { "openclaw": { "emoji": "🛩️", "requires": { "bins": ["docker"] } } }
 ---
@@ -142,6 +142,6 @@ docker run \
   psyb0t/planesnitch
 ```
 
-A health endpoint runs on `:8080`; the image ships a built-in Docker healthcheck against it.
+The config and CSV mounts are read-only. `./images` is the only writable mount and holds the cached aircraft-type pictures. A health endpoint runs on `:8080`; the image ships a built-in Docker healthcheck against it.
 
 Full config field reference, env var table, Docker compose, and Telegram bot-token setup: [references/setup.md](references/setup.md).

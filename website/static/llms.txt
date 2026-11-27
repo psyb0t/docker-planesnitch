@@ -1,0 +1,15 @@
+# planesnitch
+
+> Self-hosted aircraft watcher that alerts on military, government, police and emergency aircraft near your locations, via Telegram or webhooks, using free ADS-B APIs.
+
+- [Home](https://psyb0t.github.io/docker-planesnitch/): planesnitch watches your locations for military, government, police and emergency aircraft and alerts you on Telegram or a webhook. No SDR needed.
+- [Getting started](https://psyb0t.github.io/docker-planesnitch/getting-started/): From nothing to your first planesnitch alert: write config.yaml, create a Telegram bot, download plane-alert-db CSVs, and run the container.
+- [Configuration](https://psyb0t.github.io/docker-planesnitch/configuration/): Every planesnitch config.yaml key with its default: poll interval, display units, locations, sources, alert rules, notification targets and env variables.
+- [Watchlists](https://psyb0t.github.io/docker-planesnitch/watchlists/): The six planesnitch watchlist types, from emergency squawks and ICAO hex lists to plane-alert-db CSVs and low-flyer altitude filters, and how matching works.
+- [Notifications](https://psyb0t.github.io/docker-planesnitch/notifications/): How planesnitch sends alerts to Telegram and webhooks: message format, batching, aircraft-type photos, the webhook JSON payload and match fields.
+- [How it works](https://psyb0t.github.io/docker-planesnitch/how-it-works/): What planesnitch does each poll: grouping locations into requests, querying ADS-B sources, rate-limit backoff, deduplication, matching and cooldowns.
+- [Deployment](https://psyb0t.github.io/docker-planesnitch/deployment/): Run planesnitch with Docker or Compose: image tags, the config, CSV and image-cache volumes, the health check, upgrades and what state survives a restart.
+- [Security](https://psyb0t.github.io/docker-planesnitch/security/): What planesnitch sends where, what it stores, which secrets the config holds, and what to lock down before running it: outbound calls, health port, container user.
+- [Troubleshooting](https://psyb0t.github.io/docker-planesnitch/troubleshooting/): planesnitch startup errors and runtime warnings with their exact messages, plus fixes for no aircraft, no alerts, missing photos and webhook failures.
+- [Agent integrations](https://psyb0t.github.io/docker-planesnitch/integrations/): Install the planesnitch agent skill in Claude Code, Codex or OpenClaw, so an AI agent can write the config, set up watchlists and run the container for you.
+- [Development](https://psyb0t.github.io/docker-planesnitch/development/): How planesnitch is laid out and built: module map, Make targets for tests, lint and formatting, and the main-branch and tag release pipeline.

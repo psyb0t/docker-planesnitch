@@ -1,7 +1,6 @@
 ---
-title: "Security"
+title: Security
 description: "What planesnitch sends where, what it stores, which secrets the config holds, and what to lock down before running it: outbound calls, health port, container user."
-nav_order: 8
 ---
 
 # Security

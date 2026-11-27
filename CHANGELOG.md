@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.2], 2026-11-27
+
+- **Documentation site.** The pages in `docs/` are now built by Docusaurus, a static site generator, instead of Jekyll, and every page keeps its address. A new `docs.yml` workflow publishes the site, and the shared visitor tracker still loads on every page. `make docs` builds the site in a pinned Node container and fails on a broken link or anchor, and `make docs-lock` refreshes its lockfile.
+- **Skill.** The skill lists the network, file and shell access it needs and says that the config and CSV mounts are read-only and `./images` is the only writable mount. The setup guide notes that the `getUpdates` lookup sends the bot token to `api.telegram.org`.
+- **ClawHub.** When the skill is published, it names the released `psyb0t/planesnitch` image by tag and digest instead of `latest`, and its links to files in this repository point at the release tag instead of `main`. The files in the repository keep `latest` and `main`.
+- **Pipeline.** Every branch push runs lint and tests again, so Dependabot and other branches get checks before merging. Images still build only on `main` and tags. The image job is now named `docker`, and both image jobs set the Docker Hub repository to public and sync its description.
+
 ## [1.9.1], 2026-11-09
 
 - Fixes the pipeline so v1.9.0's changes actually ship. The `code` job did not grant `security-events: write`, which the shared code workflow requests, so GitHub refused to start the v1.9.0 runs and no v1.9.0 image or release was published. Everything listed under 1.9.0 below arrives with this release.

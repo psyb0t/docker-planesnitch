@@ -1,7 +1,6 @@
 ---
-title: "Troubleshooting"
-description: "planesnitch startup errors and runtime warnings with their exact messages, plus fixes for no aircraft, no alerts, missing photos and webhook failures."
-nav_order: 9
+title: Troubleshooting
+description: planesnitch startup errors and runtime warnings with their exact messages, plus fixes for no aircraft, no alerts, missing photos and webhook failures.
 ---
 
 # Troubleshooting

@@ -1,7 +1,6 @@
 ---
-title: "Configuration"
+title: Configuration
 description: "Every planesnitch config.yaml key with its default: poll interval, display units, locations, sources, alert rules, notification targets and env variables."
-nav_order: 3
 ---
 
 # Configuration

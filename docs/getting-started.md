@@ -1,7 +1,6 @@
 ---
-title: "Getting started"
+title: Getting started
 description: "From nothing to your first planesnitch alert: write config.yaml, create a Telegram bot, download plane-alert-db CSVs, and run the container."
-nav_order: 2
 ---
 
 # Getting started

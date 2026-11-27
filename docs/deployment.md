@@ -1,7 +1,6 @@
 ---
-title: "Deployment"
+title: Deployment
 description: "Run planesnitch with Docker or Compose: image tags, the config, CSV and image-cache volumes, the health check, upgrades and what state survives a restart."
-nav_order: 7
 ---
 
 # Deployment

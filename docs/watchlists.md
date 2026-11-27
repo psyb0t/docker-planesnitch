@@ -1,7 +1,6 @@
 ---
-title: "Watchlists"
-description: "The six planesnitch watchlist types, from emergency squawks and ICAO hex lists to plane-alert-db CSVs and low-flyer altitude filters, and how matching works."
-nav_order: 4
+title: Watchlists
+description: The six planesnitch watchlist types, from emergency squawks and ICAO hex lists to plane-alert-db CSVs and low-flyer altitude filters, and how matching works.
 ---
 
 # Watchlists

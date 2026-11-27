@@ -1,10 +1,7 @@
 ---
-title: "Home"
-description: "planesnitch watches your locations for military, government, police and emergency aircraft and alerts you on Telegram or a webhook. No SDR needed."
-nav_order: 1
-permalink: /
-seo:
-  type: WebSite
+title: Home
+description: planesnitch watches your locations for military, government, police and emergency aircraft and alerts you on Telegram or a webhook. No SDR needed.
+slug: /
 ---
 
 # planesnitch
